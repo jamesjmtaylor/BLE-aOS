@@ -1,1 +1,5 @@
 # BLE-aOS
+
+This android application displays the most recently received beacon broadcast. If multiple broadcasts are received simultaneously it defaults to the closest beacon.  The application uses the AltBeacon SDK, which is licensed under Apache 2.0 and provides a format agnostic interface for receiving and handling beacon broadcasts.  The library provides uuid, major/minor ids, received signal strength, transmission power, and distance, regardless of whether the transmitting beacon is using iBeacon protocol or Eddystone protocol.  With the SDK included the app is 2.48 mb in size. You can read more about the library at http://altbeacon.org/.
+
+The application requires permissions for Bluetooth as well as coarse location.   A location permission is required because Bluetooth scans can be used to gather information about the location of the user. This information may come from the user's own devices, as well as Bluetooth beacons in use at locations such as shops and transit facilities.  You can read more about the required permissions at https://developer.android.com/guide/topics/connectivity/bluetooth.html.
