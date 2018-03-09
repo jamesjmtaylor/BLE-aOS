@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <android.support.constraint.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context="com.steelcase.beaconsensor.MainActivity">
+
+        <TextView
+            android:id="@+id/titleTextView"
+            android:layout_width="0dp"
+            android:layout_height="19dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:text="Beacon Observer"
+            android:textAlignment="center"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
+
+        <TextView
+            android:id="@+id/distanceTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="17dp"
+            android:layout_marginTop="16dp"
+            android:text="Distance:"
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/rssiTextView"/>
+
+        <TextView
+            android:id="@+id/rssiTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="17dp"
+            android:layout_marginTop="16dp"
+            android:text="RSSI:"
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/txPowerTextView"/>
+
+        <TextView
+            android:id="@+id/txPowerTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="17dp"
+            android:layout_marginTop="16dp"
+            android:text="Transmission Power:"
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/minorTextView"/>
+
+        <TextView
+            android:id="@+id/minorTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="17dp"
+            android:layout_marginTop="16dp"
+            android:text="Minor:"
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/majorTextView"/>
+
+        <TextView
+            android:id="@+id/majorTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Major:"
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/uuidTextView"/>
+
+        <TextView
+            android:id="@+id/uuidTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="UUID: "
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/foundTextView"/>
+
+        <TextView
+            android:id="@+id/foundTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Found: "
+            app:layout_constraintStart_toStartOf="@+id/titleTextView"
+            app:layout_constraintTop_toBottomOf="@+id/titleTextView"/>
+
+    </android.support.constraint.ConstraintLayout>
+</ScrollView>
