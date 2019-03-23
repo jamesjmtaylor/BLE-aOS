@@ -22,7 +22,7 @@ import org.altbeacon.beacon.*
 import timber.log.Timber
 
 
-class beaconFragment : Fragment(), BeaconConsumer {
+class BeaconFragment : Fragment(), BeaconConsumer {
     private val PERMISSION_REQUEST_COARSE_LOCATION = 1
     private val MY_PERMISSIONS_REQUEST_LOCATION = 99
     var beaconManager : BeaconManager? = null
@@ -33,11 +33,11 @@ class beaconFragment : Fragment(), BeaconConsumer {
         arguments?.let {}//Inflate arguments here
 
         if (checkLocationPermission()) {
-            beaconManager = BeaconManager.getInstanceForApplication(this)
+            beaconManager = BeaconManager.getInstanceForApplication(applicationContext)
             beaconManager?.getBeaconParsers()?.add(BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24"))
             beaconManager?.bind(this)
         }
-        beaconManager = BeaconManager.getInstanceForApplication(this)
+        beaconManager = BeaconManager.getInstanceForApplication(applicationContext)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -87,7 +87,7 @@ class beaconFragment : Fragment(), BeaconConsumer {
                         //UPDATE UI HERE
                     }
                 } catch (e:Exception){
-                    Timber.e(e, beaconFragment::class.java.simpleName,e.localizedMessage)
+                    Timber.e(e, BeaconFragment::class.java.simpleName,e.localizedMessage)
                 }
             }
         })
@@ -104,7 +104,7 @@ class beaconFragment : Fragment(), BeaconConsumer {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Timber.d("coarse location permission granted")
                 } else {
-                    val builder = AlertDialog.Builder(this)
+                    val builder = AlertDialog.Builder(applicationContext)
                     builder.setTitle("Functionality limited")
                     builder.setMessage("Since location access has not been granted, this app will not be able to discover beacons when in the background.")
                     builder.setPositiveButton(android.R.string.ok, null)
@@ -116,12 +116,12 @@ class beaconFragment : Fragment(), BeaconConsumer {
         }
     }
     fun checkLocationPermission(): Boolean {
-        if (ContextCompat.checkSelfPermission(this,
+        if (ContextCompat.checkSelfPermission(applicationContext,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity as Activity,
                             Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                AlertDialog.Builder(this)
+                AlertDialog.Builder(applicationContext)
                         .setTitle("Location Permission")
                         .setMessage("Ranging for beacons requires location permission")
                         .setPositiveButton("OK", object : DialogInterface.OnClickListener {
@@ -129,14 +129,14 @@ class beaconFragment : Fragment(), BeaconConsumer {
                                 //Prompt the user once explanation has been shown
                                 ActivityCompat.requestPermissions(activity as Activity,
                                         arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                                        MY_PERMISSIONS_REQUEST_LOCATION);}
+                                        MY_PERMISSIONS_REQUEST_LOCATION)}
                         })
                         .create()
-                        .show();
+                        .show()
             } else {// No explanation needed, we can request the permission.
-                ActivityCompat.requestPermissions(this,
+                ActivityCompat.requestPermissions(activity as Activity,
                         arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                        MY_PERMISSIONS_REQUEST_LOCATION);
+                        MY_PERMISSIONS_REQUEST_LOCATION)
             }
             return false;
         } else {
@@ -146,10 +146,9 @@ class beaconFragment : Fragment(), BeaconConsumer {
 
 
     companion object {
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-                beaconFragment().apply {
-                    arguments = Bundle().apply {}//Apply constructor arguments to bundle as reqd
-                }
-    }
+        fun newInstance() =
+            BeaconFragment().apply {
+                arguments = Bundle().apply {}//Apply constructor arguments to bundle as reqd
+            }
+        }
 }
