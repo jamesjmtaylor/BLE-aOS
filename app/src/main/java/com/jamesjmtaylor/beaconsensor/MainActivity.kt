@@ -13,9 +13,10 @@ class MainActivity : AppCompatActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        val beaconFragment = BeaconFragment.newInstance()
+//        val beaconFragment = BeaconFragment.newInstance()
+        val bluetoothSocketFragment = BluetoothSocketFragment.newInstance()
         val transaction = supportFragmentManager.beginTransaction()
-        transaction.add(R.id.fragmentFrameLayout, beaconFragment).addToBackStack(beaconFragment.tag).commit()
+        transaction.add(R.id.fragmentFrameLayout, bluetoothSocketFragment).addToBackStack(bluetoothSocketFragment.tag).commit()
     }
 
 

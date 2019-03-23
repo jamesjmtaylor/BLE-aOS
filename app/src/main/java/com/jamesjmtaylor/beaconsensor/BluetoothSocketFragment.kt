@@ -43,11 +43,9 @@ class BluetoothSocketFragment : Fragment() {
         arguments?.let {}
         val handler = Handler()
 
-        val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        val mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter() ?: return
 
-
-
-        if (!mBluetoothAdapter.isEnabled()) {
+        if (!mBluetoothAdapter.isEnabled) {
             val enableBluetooth = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBluetooth, 0);
         }
