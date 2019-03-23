@@ -8,22 +8,24 @@ import org.altbeacon.beacon.BeaconParser
 import org.altbeacon.beacon.Region
 import org.altbeacon.beacon.startup.BootstrapNotifier
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver
-
-
-
+import timber.log.Timber
 
 
 /**
  * Created by jtaylor on 3/8/18.
  */
 class App : Application(), BootstrapNotifier {
-    private val TAG = "ApplicationSingleton"
     private var regionBootstrap: RegionBootstrap? = null
     private var backgroundPowerSaver: BackgroundPowerSaver? = null
 
+    companion object {
+        lateinit var instance: App
+            private set
+    }
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "App started up")
+        instance = this
+        Timber.d( "App started up")
         val beaconManager = BeaconManager.getInstanceForApplication(this)
         // To detect proprietary beacons, you must add a line like below corresponding to your beacon
         // type.  Do a web search for "setBeaconLayout" to get the proper expression.
@@ -38,15 +40,12 @@ class App : Application(), BootstrapNotifier {
     }
 
     override fun didDetermineStateForRegion(state: Int, region: Region) {
-        Log.i(TAG, "I just determined my state was $state for the $region region!")
+        Timber.d("I just determined my state was $state for the $region region!")
     }
     override fun didEnterRegion(region: Region) {
-        Log.i(TAG, "I just entered the $region region!")
+        Timber.d("I just entered the $region region!")
     }
     override fun didExitRegion(region: Region) {
-        Log.i(TAG, "I just left the $region region!")
-    }
-    companion object {
-        private val TAG = ".BeaconSensor"
+        Timber.i("I just left the $region region!")
     }
 }
