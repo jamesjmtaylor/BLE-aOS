@@ -1,4 +1,4 @@
-package com.steelcase.beaconsensor
+package com.jamesjmtaylor.beaconsensor
 
 import android.Manifest
 import android.app.Activity
@@ -7,14 +7,12 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.os.RemoteException
 import android.support.v4.app.ActivityCompat
 import android.support.v4.app.Fragment
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,7 +23,7 @@ import timber.log.Timber
 class BeaconFragment : Fragment(), BeaconConsumer {
     private val PERMISSION_REQUEST_COARSE_LOCATION = 1
     private val MY_PERMISSIONS_REQUEST_LOCATION = 99
-    var beaconManager : BeaconManager? = null
+    var beaconManager: BeaconManager? = null
 
     //MARK: - Lifecycle
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,18 +43,22 @@ class BeaconFragment : Fragment(), BeaconConsumer {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_beacon, container, false)
     }
+
     override fun onPause() {
         super.onPause()
         if (beaconManager?.isBound(this) ?: false) beaconManager?.setBackgroundMode(true)
     }
+
     override fun onResume() {
         super.onResume()
         if (beaconManager?.isBound(this) ?: false) beaconManager?.setBackgroundMode(false)
     }
+
     override fun onDestroy() {
         super.onDestroy()
         beaconManager?.unbind(this)
     }
+
     override fun getApplicationContext(): Context {
         return App.instance.applicationContext
     }
@@ -65,11 +67,13 @@ class BeaconFragment : Fragment(), BeaconConsumer {
     override fun unbindService(p0: ServiceConnection?) {
         p0?.let { activity?.unbindService(it) }
     }
+
     override fun bindService(p0: Intent?, p1: ServiceConnection?, p2: Int): Boolean {
         p1?.let { return activity?.bindService(p0, it, p2) ?: false }
         return false
 
     }
+
     override fun onBeaconServiceConnect() {
         beaconManager?.addRangeNotifier(object : RangeNotifier {
             override fun didRangeBeaconsInRegion(beaconList: MutableCollection<org.altbeacon.beacon.Beacon>?, p1: Region?) {
@@ -86,14 +90,15 @@ class BeaconFragment : Fragment(), BeaconConsumer {
                     activity?.runOnUiThread {
                         //UPDATE UI HERE
                     }
-                } catch (e:Exception){
-                    Timber.e(e, BeaconFragment::class.java.simpleName,e.localizedMessage)
+                } catch (e: Exception) {
+                    Timber.e(e, BeaconFragment::class.java.simpleName, e.localizedMessage)
                 }
             }
         })
         try {
             beaconManager?.startRangingBeaconsInRegion(Region("myRangingUniqueId", null, null, null))
-        } catch (e: RemoteException) {}
+        } catch (e: RemoteException) {
+        }
     }
 
     //MARK: - Permission Requests
@@ -115,6 +120,7 @@ class BeaconFragment : Fragment(), BeaconConsumer {
             }
         }
     }
+
     fun checkLocationPermission(): Boolean {
         if (ContextCompat.checkSelfPermission(applicationContext,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -129,7 +135,8 @@ class BeaconFragment : Fragment(), BeaconConsumer {
                                 //Prompt the user once explanation has been shown
                                 ActivityCompat.requestPermissions(activity as Activity,
                                         arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-                                        MY_PERMISSIONS_REQUEST_LOCATION)}
+                                        MY_PERMISSIONS_REQUEST_LOCATION)
+                            }
                         })
                         .create()
                         .show()
@@ -147,8 +154,8 @@ class BeaconFragment : Fragment(), BeaconConsumer {
 
     companion object {
         fun newInstance() =
-            BeaconFragment().apply {
-                arguments = Bundle().apply {}//Apply constructor arguments to bundle as reqd
-            }
-        }
+                BeaconFragment().apply {
+                    arguments = Bundle().apply {}//Apply constructor arguments to bundle as reqd
+                }
+    }
 }

@@ -1,13 +1,12 @@
-package com.steelcase.beaconsensor
+package com.jamesjmtaylor.beaconsensor
 
 import android.app.Application
-import android.util.Log
-import org.altbeacon.beacon.startup.RegionBootstrap
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.BeaconParser
 import org.altbeacon.beacon.Region
-import org.altbeacon.beacon.startup.BootstrapNotifier
 import org.altbeacon.beacon.powersave.BackgroundPowerSaver
+import org.altbeacon.beacon.startup.BootstrapNotifier
+import org.altbeacon.beacon.startup.RegionBootstrap
 import timber.log.Timber
 
 
@@ -22,10 +21,11 @@ class App : Application(), BootstrapNotifier {
         lateinit var instance: App
             private set
     }
+
     override fun onCreate() {
         super.onCreate()
         instance = this
-        Timber.d( "App started up")
+        Timber.d("App started up")
         val beaconManager = BeaconManager.getInstanceForApplication(this)
         // To detect proprietary beacons, you must add a line like below corresponding to your beacon
         // type.  Do a web search for "setBeaconLayout" to get the proper expression.
@@ -42,9 +42,11 @@ class App : Application(), BootstrapNotifier {
     override fun didDetermineStateForRegion(state: Int, region: Region) {
         Timber.d("I just determined my state was $state for the $region region!")
     }
+
     override fun didEnterRegion(region: Region) {
         Timber.d("I just entered the $region region!")
     }
+
     override fun didExitRegion(region: Region) {
         Timber.i("I just left the $region region!")
     }
