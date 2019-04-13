@@ -25,7 +25,10 @@ class App : Application(), BootstrapNotifier {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         Timber.d("App started up")
+
         val beaconManager = BeaconManager.getInstanceForApplication(this)
         // To detect proprietary beacons, you must add a line like below corresponding to your beacon
         // type.  Do a web search for "setBeaconLayout" to get the proper expression.

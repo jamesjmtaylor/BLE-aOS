@@ -18,18 +18,25 @@ import timber.log.Timber
 private const val TAG = "MY_APP_DEBUG_TAG"
 
 // Defines several constants used when transmitting messages between the
-// service and the UI.
+// bluetoothService and the UI.
 const val MESSAGE_READ: Int = 0
 const val MESSAGE_WRITE: Int = 1
 const val MESSAGE_TOAST: Int = 2
 // ... (Add other message types here as needed.)
 
 class BluetoothService : Service() { //Service for persistent connection to bluetooth socket, rather than IntentService which dies after handling intent
+    private val binder = LocalBinder()
+
+    inner class LocalBinder : Binder() {
+        fun getService(): BluetoothService = this@BluetoothService
+    }
+
     private var serviceLooper: Looper? = null
     private var bluetoothServiceHandler: BluetoothServiceHandler? = null
-    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothManager.adapter
+
+    //MARK: - SERVICE LOGIC
+    override fun onBind(intent: Intent?): IBinder? {
+        return binder
     }
 
     override fun onCreate() {
@@ -48,14 +55,24 @@ class BluetoothService : Service() { //Service for persistent connection to blue
             msg.arg1 = startId //Save starting Id for request tracking
             bluetoothServiceHandler?.sendMessage(msg) //Send a message to start a job
         }
-        startForegroundNotificationService()
-        return START_STICKY //if this service's process is killed while it is started this will try & restart it
+        return START_STICKY //if this bluetoothService's process is killed while it is started this will try & restart it
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null //Binding not used by a background service
+    //MARK: - BLUETOOTH LOGIC
+    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothManager.adapter
     }
 
+    private inner class BluetoothServiceHandler(looper: Looper) : Handler(looper) {
+        override fun handleMessage(msg: Message?) {
+            super.handleMessage(msg)
+            Timber.d("BluetoothService handleMessage called with message $msg")
+            //Potentially stop the bluetoothService here based on message content
+        }
+    }
+
+    //MARK: - FOREGROUND SERVICE CREATION
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(channelId: String, channelName: String): String {
         val chan = NotificationChannel(channelId,
@@ -77,25 +94,18 @@ class BluetoothService : Service() { //Service for persistent connection to blue
         val notificationBuilder = NotificationCompat.Builder(App.instance, channelId)
         val notification = notificationBuilder
                 .setContentTitle("Bluetooth Service")
-                .setContentText("A foreground service for maintaining the bluetooth socket connection")
+                .setContentText("A foreground bluetoothService for maintaining the bluetooth socket connection")
                 .setContentIntent(pendingIntent)
                 .build()
 
         startForeground(ONGOING_BLUETOOTH_NOTIFICATION_ID, notification)
     }
-
-    private inner class BluetoothServiceHandler(looper: Looper) : Handler(looper) {
-        override fun handleMessage(msg: Message?) {
-            super.handleMessage(msg)
-            Timber.d("BluetoothService handleMessage called with message $msg")
-            //Potentially stop the service here based on message content
-        }
-    }
 }
 
 const val BLUETOOTH_NOTIFICATION_ID = "Bluetooth notifications channel"
 const val BLUETOOTH_NOTIFICATION_NAME = "Bluetooth notifications"
-const val ONGOING_BLUETOOTH_NOTIFICATION_ID = 117
+const val ONGOING_BLUETOOTH_NOTIFICATION_ID = 1
+const val REQUEST_ENABLE_BT = 2
 
 /* private inner class ConnectedThread(private val mmSocket: BluetoothSocket) : Thread() {
 
