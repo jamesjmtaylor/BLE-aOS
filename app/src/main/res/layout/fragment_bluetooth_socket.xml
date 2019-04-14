@@ -2,12 +2,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.steelcase.beaconsensor.BluetoothSocketFragment">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <androidx.recyclerview.widget.RecyclerView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/socket_fragment_title" />
+        android:layout_height="0dp"
+        android:id="@+id/recyclerList"
+        android:name="com.jamesjmtaylor.weg2017.EquipmentFragment"
+        android:background="@color/colorAccent"
+        app:layoutManager="LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:context=".equipmentTabs.EquipmentRecyclerViewFragment"
+        tools:listitem="@layout/row_result" />
 
 </FrameLayout>

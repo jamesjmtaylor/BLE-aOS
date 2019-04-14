@@ -2,6 +2,7 @@ package com.jamesjmtaylor.beaconsensor
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -9,18 +10,16 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.RemoteException
-import android.support.v4.app.ActivityCompat
-import android.support.v4.app.Fragment
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import org.altbeacon.beacon.*
 import timber.log.Timber
 
 
-class BeaconFragment : Fragment(), BeaconConsumer {
+class BeaconFragment : androidx.fragment.app.Fragment(), BeaconConsumer {
     private val PERMISSION_REQUEST_COARSE_LOCATION = 1
     private val MY_PERMISSIONS_REQUEST_LOCATION = 99
     var beaconManager: BeaconManager? = null

@@ -1,19 +1,14 @@
 package com.jamesjmtaylor.beaconsensor
 
 import android.app.*
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.support.annotation.RequiresApi
-import android.support.v4.app.NotificationCompat
-
-
-private const val TAG = "MY_APP_DEBUG_TAG"
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 
 // Defines several constants used when transmitting messages between the
 // bluetoothService and the UI.
@@ -21,15 +16,16 @@ const val MESSAGE_READ: Int = 0
 const val MESSAGE_WRITE: Int = 1
 const val MESSAGE_TOAST: Int = 2
 
-// ... (Add other message types here as needed.)
-class BluetoothService : Service() { //Service for persistent connection to bluetooth socket, rather than IntentService which dies after handling intent
+//Service for persistent deviceConnection to bluetooth socket, rather than IntentService which dies after handling intent
+class BluetoothService : Service() {
+    var deviceConnection: BluetoothDeviceConnection? = null
+    //MARK: - SERVICE LOGIC
     private val binder = LocalBinder()
 
     inner class LocalBinder : Binder() {
         fun getService(): BluetoothService = this@BluetoothService
     }
 
-    //MARK: - SERVICE LOGIC
     override fun onBind(intent: Intent?): IBinder? {
         return binder
     }
@@ -38,14 +34,11 @@ class BluetoothService : Service() { //Service for persistent connection to blue
         startForegroundNotificationService()
     }
 
-    //MARK: - BLUETOOTH LOGIC
-    val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothManager.adapter
+    override fun onDestroy() {
+        deviceConnection?.bluetoothGatt?.close()
+        super.onDestroy()
     }
 
-
-    //MARK: - FOREGROUND SERVICE CREATION
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(channelId: String, channelName: String): String {
         val chan = NotificationChannel(channelId,
@@ -67,7 +60,7 @@ class BluetoothService : Service() { //Service for persistent connection to blue
         val notificationBuilder = NotificationCompat.Builder(App.instance, channelId)
         val notification = notificationBuilder
                 .setContentTitle("Bluetooth Service")
-                .setContentText("A foreground bluetoothService for maintaining the bluetooth socket connection")
+                .setContentText("A foreground bluetoothService for maintaining the bluetooth socket deviceConnection")
                 .setContentIntent(pendingIntent)
                 .build()
 
@@ -77,8 +70,7 @@ class BluetoothService : Service() { //Service for persistent connection to blue
 
 const val BLUETOOTH_NOTIFICATION_ID = "Bluetooth notifications channel"
 const val BLUETOOTH_NOTIFICATION_NAME = "Bluetooth notifications"
-const val ONGOING_BLUETOOTH_NOTIFICATION_ID = 1
-const val REQUEST_ENABLE_BT = 2
+
 
 /* private inner class ConnectedThread(private val mmSocket: BluetoothSocket) : Thread() {
 
@@ -131,7 +123,7 @@ const val REQUEST_ENABLE_BT = 2
          writtenMsg.sendToTarget()
      }
 
-     // Call this method from the main activity to shut down the connection.
+     // Call this method from the main activity to shut down the deviceConnection.
      fun cancel() {
          try {
              mmSocket.close()
