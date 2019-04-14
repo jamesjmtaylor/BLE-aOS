@@ -1,11 +1,14 @@
 package com.jamesjmtaylor.beaconsensor
 
+import android.content.ServiceConnection
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.WindowManager
 
-class MainActivity : AppCompatActivity() {
-
+class MainActivity : AppCompatActivity(), BluetoothServiceView {
+    override var bluetoothServiceIsBound: Boolean = false
+    override var bluetoothService: BluetoothService? = null
+    override var bluetoothServiceConnection: ServiceConnection? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,7 +20,11 @@ class MainActivity : AppCompatActivity() {
         val bluetoothSocketFragment = BluetoothSocketFragment.newInstance()
         val transaction = supportFragmentManager.beginTransaction()
         transaction.add(R.id.fragmentFrameLayout, bluetoothSocketFragment).addToBackStack(bluetoothSocketFragment.tag).commit()
+        bindService(this)
     }
 
-
+    override fun onDestroy() {
+        super.onDestroy()
+        unbindService(this)
+    }
 }

@@ -6,13 +6,11 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.os.*
-import android.os.Process.THREAD_PRIORITY_BACKGROUND
+import android.os.Binder
+import android.os.Build
+import android.os.IBinder
 import android.support.annotation.RequiresApi
 import android.support.v4.app.NotificationCompat
-import android.widget.Toast
-import android.widget.Toast.LENGTH_LONG
-import timber.log.Timber
 
 
 private const val TAG = "MY_APP_DEBUG_TAG"
@@ -22,8 +20,8 @@ private const val TAG = "MY_APP_DEBUG_TAG"
 const val MESSAGE_READ: Int = 0
 const val MESSAGE_WRITE: Int = 1
 const val MESSAGE_TOAST: Int = 2
-// ... (Add other message types here as needed.)
 
+// ... (Add other message types here as needed.)
 class BluetoothService : Service() { //Service for persistent connection to bluetooth socket, rather than IntentService which dies after handling intent
     private val binder = LocalBinder()
 
@@ -31,46 +29,21 @@ class BluetoothService : Service() { //Service for persistent connection to blue
         fun getService(): BluetoothService = this@BluetoothService
     }
 
-    private var serviceLooper: Looper? = null
-    private var bluetoothServiceHandler: BluetoothServiceHandler? = null
-
     //MARK: - SERVICE LOGIC
     override fun onBind(intent: Intent?): IBinder? {
         return binder
     }
 
     override fun onCreate() {
-        HandlerThread("ServiceStartArguments", THREAD_PRIORITY_BACKGROUND).apply {
-            start()
-            serviceLooper = looper //Get the HandlerThread's looper and use it for our handler
-            bluetoothServiceHandler = BluetoothServiceHandler(looper)
-        }
-
         startForegroundNotificationService()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "Starting Bluetooth Service", LENGTH_LONG).show()
-        bluetoothServiceHandler?.obtainMessage()?.also { msg ->
-            msg.arg1 = startId //Save starting Id for request tracking
-            bluetoothServiceHandler?.sendMessage(msg) //Send a message to start a job
-        }
-        return START_STICKY //if this bluetoothService's process is killed while it is started this will try & restart it
-    }
-
     //MARK: - BLUETOOTH LOGIC
-    private val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.NONE) {
+    val bluetoothAdapter: BluetoothAdapter? by lazy(LazyThreadSafetyMode.PUBLICATION) {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
 
-    private inner class BluetoothServiceHandler(looper: Looper) : Handler(looper) {
-        override fun handleMessage(msg: Message?) {
-            super.handleMessage(msg)
-            Timber.d("BluetoothService handleMessage called with message $msg")
-            //Potentially stop the bluetoothService here based on message content
-        }
-    }
 
     //MARK: - FOREGROUND SERVICE CREATION
     @RequiresApi(Build.VERSION_CODES.O)
