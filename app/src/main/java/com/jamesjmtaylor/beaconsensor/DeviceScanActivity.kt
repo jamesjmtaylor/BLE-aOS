@@ -1,9 +1,12 @@
 package com.jamesjmtaylor.beaconsensor
 
 import android.app.Activity
+import android.app.ListActivity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,11 +15,12 @@ import android.os.Handler
 import android.view.*
 import android.widget.BaseAdapter
 import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import timber.log.Timber
 
 
-class DeviceScanActivity : AppCompatActivity() {
+class DeviceScanActivity : ListActivity() {
 
     private var mLeDeviceListAdapter: LeDeviceListAdapter? = null
     private var mBluetoothAdapter: BluetoothAdapter? = null
@@ -53,7 +57,7 @@ class DeviceScanActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(res.menu.main, menu)
+        menuInflater.inflate(R.menu.main, menu)
         if (!mScanning) {
             menu.findItem(R.id.menu_stop).setVisible(false)
             menu.findItem(R.id.menu_scan).setVisible(true)
@@ -111,13 +115,13 @@ class DeviceScanActivity : AppCompatActivity() {
         mLeDeviceListAdapter!!.clear()
     }
 
-    protected fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
+    override fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
         val device = mLeDeviceListAdapter!!.getDevice(position) ?: return
         val intent = Intent(this, DeviceControlActivity::class.java)
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.name)
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.address)
         if (mScanning) {
-            mBluetoothAdapter!!.stopLeScan(mLeScanCallback)
+            mBluetoothAdapter?.bluetoothLeScanner?.stopScan(mLeScanCallback)
             mScanning = false
         }
         startActivity(intent)
@@ -126,26 +130,24 @@ class DeviceScanActivity : AppCompatActivity() {
     private fun scanLeDevice(enable: Boolean) {
         if (enable) {
             // Stops scanning after a pre-defined scan period.
-            mHandler!!.postDelayed(Runnable {
+            mHandler!!.postDelayed({
                 mScanning = false
-                mBluetoothAdapter!!.stopLeScan(mLeScanCallback)
+                mBluetoothAdapter?.bluetoothLeScanner?.stopScan(mLeScanCallback)
                 invalidateOptionsMenu()
             }, SCAN_PERIOD)
 
             mScanning = true
-            mBluetoothAdapter!!.startLeScan(mLeScanCallback)
+            mBluetoothAdapter?.bluetoothLeScanner?.startScan(mLeScanCallback)
         } else {
             mScanning = false
-            mBluetoothAdapter!!.stopLeScan(mLeScanCallback)
+            mBluetoothAdapter?.bluetoothLeScanner?.stopScan(mLeScanCallback)
         }
         invalidateOptionsMenu()
     }
 
     // Adapter for holding devices found through scanning.
     private inner class LeDeviceListAdapter : BaseAdapter() {
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-            return mLeDevices[i]
-        }
+
 
         private val mLeDevices: ArrayList<BluetoothDevice>
         private val mInflator: LayoutInflater
@@ -180,14 +182,75 @@ class DeviceScanActivity : AppCompatActivity() {
         override fun getItemId(i: Int): Long {
             return i.toLong()
         }
+
+        override fun getView(i: Int, view: View?, viewGroup: ViewGroup): View {
+            var view = view
+            val viewHolder: ViewHolder
+            // General ListView optimization code.
+            if (view == null) {
+                view = mInflator.inflate(R.layout.listitem_device, null)
+                viewHolder = ViewHolder()
+                viewHolder.deviceAddress = view?.findViewById(R.id.device_address) as TextView
+                viewHolder.deviceName = view.findViewById(R.id.device_name) as TextView
+                view.tag = viewHolder
+            } else {
+                viewHolder = view.tag as ViewHolder
+            }
+
+            val device = mLeDevices[i]
+            val deviceName = device.name
+            if (deviceName != null && deviceName.length > 0)
+                viewHolder.deviceName?.setText(deviceName)
+            else
+                viewHolder.deviceName?.setText("UNKNOWN DEVICE")
+            viewHolder.deviceAddress?.setText(device.address)
+
+            return view
+        }
+
+
+    }
+
+    internal class ViewHolder {
+        var deviceName: TextView? = null
+        var deviceAddress: TextView? = null
     }
 
     // Device scan callback.
-    private val mLeScanCallback = BluetoothAdapter.LeScanCallback { device, rssi, scanRecord ->
-        runOnUiThread {
-            mLeDeviceListAdapter!!.addDevice(device)
-            mLeDeviceListAdapter!!.notifyDataSetChanged()
+    private val mLeScanCallback = object : ScanCallback() {
+        override fun onScanFailed(errorCode: Int) {
+            Timber.e("Error Code: $errorCode")
+            super.onScanFailed(errorCode)
+        }
+
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+            result?.let {
+                runOnUiThread {
+                    mLeDeviceListAdapter?.addDevice(it.device)
+                    mLeDeviceListAdapter?.notifyDataSetChanged()
+                }
+            }
+            super.onScanResult(callbackType, result)
+        }
+
+        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+            results?.let {
+                runOnUiThread {
+                    it.forEach {
+                        mLeDeviceListAdapter?.addDevice(it.device)
+                        mLeDeviceListAdapter?.notifyDataSetChanged()
+                    }
+                }
+            }
+            super.onBatchScanResults(results)
         }
     }
+
+/*            ScanCallback { device, rssi, scanRecord ->
+        runOnUiThread {
+            mLeDeviceListAdapter?.addDevice(device)
+            mLeDeviceListAdapter?.notifyDataSetChanged()
+        }
+    }*/
 
 }
