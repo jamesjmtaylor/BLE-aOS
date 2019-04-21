@@ -127,8 +127,8 @@ class DeviceControlActivity : Activity() {
         mConnectionState = connection_state
         mDataField = data_value
 
-        actionBar?.title = mDeviceName
-        actionBar?.setDisplayHomeAsUpEnabled(true)
+        actionBar!!.title = mDeviceName
+        actionBar.setDisplayHomeAsUpEnabled(true)
         val gattServiceIntent = Intent(this, BluetoothLeService::class.java)
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE)
     }

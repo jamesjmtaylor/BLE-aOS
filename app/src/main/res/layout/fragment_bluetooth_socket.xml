@@ -10,7 +10,6 @@
         android:id="@+id/recyclerList"
         android:name="com.jamesjmtaylor.weg2017.EquipmentFragment"
         android:background="@color/colorAccent"
-        app:layoutManager="LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
