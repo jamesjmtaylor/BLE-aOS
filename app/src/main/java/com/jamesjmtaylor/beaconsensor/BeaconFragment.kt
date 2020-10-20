@@ -120,7 +120,7 @@ class BeaconFragment : androidx.fragment.app.Fragment(), BeaconConsumer {
         }
     }
 
-    fun checkLocationPermission(): Boolean {
+    private fun checkLocationPermission(): Boolean {
         if (ContextCompat.checkSelfPermission(applicationContext,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {

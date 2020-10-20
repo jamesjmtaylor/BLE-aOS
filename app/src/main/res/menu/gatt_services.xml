@@ -6,15 +6,15 @@
         android:checkable="false"
         android:orderInCategory="1"
         app:showAsAction="ifRoom"
-        android:title="REFRESH" />
+        android:title="@string/refresh" />
     <item
         android:id="@+id/menu_connect"
-        android:title="CONNECT"
+        android:title="@string/connect"
         android:orderInCategory="100"
         app:showAsAction="ifRoom|withText" />
     <item
         android:id="@+id/menu_disconnect"
-        android:title="DISCONNECT"
+        android:title="@string/disconnect"
         android:orderInCategory="101"
         app:showAsAction="ifRoom|withText" />
 </menu>
