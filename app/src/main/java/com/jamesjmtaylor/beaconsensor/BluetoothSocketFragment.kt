@@ -46,7 +46,6 @@ class BluetoothSocketFragment : androidx.fragment.app.Fragment(), BluetoothServi
         val view = inflater.inflate(R.layout.fragment_bluetooth_socket, container, false)
         recyclerView = view.recyclerList
         if (recyclerView is androidx.recyclerview.widget.RecyclerView) { // Set the adapter
-            val context = view.getContext()
             recyclerView?.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(activity)
             recyclerView?.adapter = adapter
         }
@@ -82,8 +81,7 @@ class BluetoothSocketFragment : androidx.fragment.app.Fragment(), BluetoothServi
 
     override val broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            when (action) {
+            when (intent.action) {
                 ACTION_GATT_CONNECTED -> {
                     connected = true
                     updateConnectionState("Connected")
@@ -100,18 +98,12 @@ class BluetoothSocketFragment : androidx.fragment.app.Fragment(), BluetoothServi
                     // user interface.
                     //displayGattServices(bluetoothService.getSupportedGattServices())
                 }
-                ACTION_DATA_AVAILABLE -> {
-                    displayData(intent.getStringExtra(EXTRA_DATA))
-                }
+                ACTION_DATA_AVAILABLE -> displayData(intent.getStringExtra(EXTRA_DATA))
             }
         }
     }
 
     private fun displayData(stringExtra: String?) {
-
-    }
-
-    private fun displayGattServices(supportedGattServices: Any) {
 
     }
 

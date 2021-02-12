@@ -1,5 +1,6 @@
 package com.jamesjmtaylor.beaconsensor
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ListActivity
 import android.bluetooth.BluetoothAdapter
@@ -7,23 +8,19 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.view.*
-import android.widget.BaseAdapter
-import android.widget.ListView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import timber.log.Timber
 
 
 class DeviceScanActivity : ListActivity() {
-
-    private var mLeDeviceListAdapter: LeDeviceListAdapter? = null
-    private var mBluetoothAdapter: BluetoothAdapter? = null
+    private var scanResultAdapter: LeDeviceListAdapter? = null
+    var mBluetoothAdapter: BluetoothAdapter? = null
     private var mScanning: Boolean = false
     private var mHandler: Handler? = null
 
@@ -33,7 +30,7 @@ class DeviceScanActivity : ListActivity() {
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        actionBar?.setTitle("Devices")
+        actionBar?.title = "Devices"
         mHandler = Handler()
 
         // Use this check to determine whether BLE is supported on the device.  Then you can
@@ -54,6 +51,8 @@ class DeviceScanActivity : ListActivity() {
             finish()
             return
         }
+        val gattServiceIntent = Intent(this, BluetoothLeService::class.java)
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -74,7 +73,7 @@ class DeviceScanActivity : ListActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.getItemId()) {
             R.id.menu_scan -> {
-                mLeDeviceListAdapter!!.clear()
+                scanResultAdapter!!.clear()
                 scanLeDevice(true)
             }
             R.id.menu_stop -> scanLeDevice(false)
@@ -84,7 +83,7 @@ class DeviceScanActivity : ListActivity() {
 
     override fun onResume() {
         super.onResume()
-
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter())
         // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
         // fire an intent to display a dialog asking the user to grant permission to enable it.
         if (!mBluetoothAdapter!!.isEnabled) {
@@ -95,8 +94,8 @@ class DeviceScanActivity : ListActivity() {
         }
 
         // Initializes list view adapter.
-        mLeDeviceListAdapter = LeDeviceListAdapter()
-        setListAdapter(mLeDeviceListAdapter)
+        scanResultAdapter = LeDeviceListAdapter()
+        listAdapter = scanResultAdapter
         scanLeDevice(true)
     }
 
@@ -111,15 +110,23 @@ class DeviceScanActivity : ListActivity() {
 
     override fun onPause() {
         super.onPause()
+
+        unregisterReceiver(mGattUpdateReceiver)
         scanLeDevice(false)
-        mLeDeviceListAdapter!!.clear()
+        scanResultAdapter!!.clear()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unbindService(mServiceConnection)
+        mBluetoothLeService = null
     }
 
     override fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
-        val device = mLeDeviceListAdapter!!.getDevice(position) ?: return
+        val result = scanResultAdapter?.getDevice(position) ?: return
         val intent = Intent(this, DeviceControlActivity::class.java)
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.name)
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.address)
+        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, result.scan.device)
+        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, result.scan.device.address)
         if (mScanning) {
             mBluetoothAdapter?.bluetoothLeScanner?.stopScan(mLeScanCallback)
             mScanning = false
@@ -130,7 +137,7 @@ class DeviceScanActivity : ListActivity() {
     private fun scanLeDevice(enable: Boolean) {
         if (enable) {
             // Stops scanning after a pre-defined scan period.
-            mHandler!!.postDelayed({
+            mHandler?.postDelayed({
                 mScanning = false
                 mBluetoothAdapter?.bluetoothLeScanner?.stopScan(mLeScanCallback)
                 invalidateOptionsMenu()
@@ -145,75 +152,87 @@ class DeviceScanActivity : ListActivity() {
         invalidateOptionsMenu()
     }
 
+    // Class to associate connection status with scanResult
+    inner class ScanResultWithConnectionStatus(val scan:  ScanResult,
+                                               var connected: Boolean = false)
     // Adapter for holding devices found through scanning.
     private inner class LeDeviceListAdapter : BaseAdapter() {
+        private val scanResults: ArrayList<ScanResultWithConnectionStatus> = ArrayList()
+        private val inflater: LayoutInflater = this@DeviceScanActivity.layoutInflater
 
-
-        private val mLeDevices: ArrayList<BluetoothDevice>
-        private val mInflator: LayoutInflater
-
-        init {
-            mLeDevices = ArrayList()
-            mInflator = this@DeviceScanActivity.layoutInflater
+        fun addScanResult(device: ScanResultWithConnectionStatus) {
+            if (!scanResults.contains(device)) scanResults.add(device)
         }
 
-        fun addDevice(device: BluetoothDevice) {
-            if (!mLeDevices.contains(device)) {
-                mLeDevices.add(device)
-            }
+        fun getDevice(position: Int): ScanResultWithConnectionStatus {
+            return scanResults[position]
         }
 
-        fun getDevice(position: Int): BluetoothDevice? {
-            return mLeDevices[position]
+        fun setDeviceConnection(connected: Boolean, device: BluetoothDevice?) {
+            scanResults.firstOrNull { it.scan.device.address == device?.address }?.connected = connected
         }
 
         fun clear() {
-            mLeDevices.clear()
+            scanResults.clear()
         }
 
         override fun getCount(): Int {
-            return mLeDevices.size
+            return scanResults.size
         }
 
         override fun getItem(i: Int): Any {
-            return mLeDevices[i]
+            return scanResults[i]
         }
 
         override fun getItemId(i: Int): Long {
             return i.toLong()
         }
 
+        @SuppressLint("SetTextI18n")
         override fun getView(i: Int, view: View?, viewGroup: ViewGroup): View {
-            var view = view
-            val viewHolder: ViewHolder
+            val tempView = view ?: inflater.inflate(R.layout.row_result, null)
+            val viewHolder: DeviceViewHolder
             // General ListView optimization code.
             if (view == null) {
-                view = mInflator.inflate(R.layout.listitem_device, null)
-                viewHolder = ViewHolder()
-                viewHolder.deviceAddress = view?.findViewById(R.id.device_address) as TextView
-                viewHolder.deviceName = view.findViewById(R.id.device_name) as TextView
-                view.tag = viewHolder
+                viewHolder = DeviceViewHolder()
+                viewHolder.deviceAddress = tempView?.findViewById(R.id.macTextView) as? TextView
+                viewHolder.deviceName = tempView.findViewById(R.id.nameTextView) as? TextView
+                viewHolder.rssi = tempView.findViewById(R.id.rssiTextView) as? TextView
+                viewHolder.txPower = tempView.findViewById(R.id.txPowerTextView) as? TextView
+                viewHolder.connectButton = tempView.findViewById(R.id.connect_button) as? Button
+                tempView.tag = viewHolder
             } else {
-                viewHolder = view.tag as ViewHolder
+                viewHolder = tempView.tag as DeviceViewHolder
             }
 
-            val device = mLeDevices[i]
-            val deviceName = device.name
-            if (deviceName != null && deviceName.length > 0)
-                viewHolder.deviceName?.setText(deviceName)
-            else
-                viewHolder.deviceName?.setText("UNKNOWN DEVICE")
-            viewHolder.deviceAddress?.setText(device.address)
+            val result = scanResults[i]
+            val deviceName = result.scan.device.name
+            viewHolder.deviceName?.text = if (deviceName != null && deviceName.isNotEmpty()) deviceName
+            else  getString(R.string.unknown_device)
 
-            return view
+            viewHolder.rssi?.text = "RSSI: ${result.scan.rssi}"
+            viewHolder.txPower?.text = "Tx Power: ${result.scan.txPower}"
+            viewHolder.deviceAddress?.text = "MAC: ${result.scan.device.address}"
+            viewHolder.connectButton?.text = if (result.connected) "DISCONNECT" else "CONNECT"
+            viewHolder.connectButton?.setOnClickListener {
+                this@DeviceScanActivity.mBluetoothLeService?.connect(result.scan.device.address)
+            }
+
+            return tempView
         }
-
-
     }
 
-    internal class ViewHolder {
+    internal class DeviceViewHolder {
+        var scanResult: ScanResult? = null
         var deviceName: TextView? = null
         var deviceAddress: TextView? = null
+        var rssi: TextView? = null
+        var txPower: TextView? = null
+        var connectButton: Button? = null
+
+        fun onClick(){
+            scanResult
+        }
     }
 
     // Device scan callback.
@@ -226,8 +245,8 @@ class DeviceScanActivity : ListActivity() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             result?.let {
                 runOnUiThread {
-                    mLeDeviceListAdapter?.addDevice(it.device)
-                    mLeDeviceListAdapter?.notifyDataSetChanged()
+                    scanResultAdapter?.addScanResult(ScanResultWithConnectionStatus(it))
+                    scanResultAdapter?.notifyDataSetChanged()
                 }
             }
             super.onScanResult(callbackType, result)
@@ -237,8 +256,8 @@ class DeviceScanActivity : ListActivity() {
             results?.let {
                 runOnUiThread {
                     it.forEach {
-                        mLeDeviceListAdapter?.addDevice(it.device)
-                        mLeDeviceListAdapter?.notifyDataSetChanged()
+                        scanResultAdapter?.addScanResult(ScanResultWithConnectionStatus(it))
+                        scanResultAdapter?.notifyDataSetChanged()
                     }
                 }
             }
@@ -246,11 +265,49 @@ class DeviceScanActivity : ListActivity() {
         }
     }
 
-/*            ScanCallback { device, rssi, scanRecord ->
-        runOnUiThread {
-            mLeDeviceListAdapter?.addDevice(device)
-            mLeDeviceListAdapter?.notifyDataSetChanged()
+    //MARK: Connection Logic:
+    private var mBluetoothLeService: BluetoothLeService? = null
+    val mServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(componentName: ComponentName, service: IBinder) {
+            mBluetoothLeService = (service as BluetoothLeService.LocalBinder).service
+            if (!mBluetoothLeService!!.initialize()) {
+                Timber.e("Unable to initialize Bluetooth")
+                finish()
+            }
         }
-    }*/
 
+        override fun onServiceDisconnected(componentName: ComponentName) {
+            mBluetoothLeService = null
+        }
+    }
+    // Handles various events fired by the Service.
+    // ACTION_GATT_CONNECTED: connected to a GATT server.
+    // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
+    // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
+    // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
+    //                        or notification operations.
+    private val mGattUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.action
+            val device = intent.extras?.getParcelable<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+
+            if (BluetoothLeService.ACTION_GATT_CONNECTED == action) {
+                scanResultAdapter?.setDeviceConnection(true, device)
+            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED == action) {
+                scanResultAdapter?.setDeviceConnection(false, device)
+            }
+            scanResultAdapter?.notifyDataSetChanged()
+        }
+    }
+
+    companion object {
+        private fun makeGattUpdateIntentFilter(): IntentFilter {
+            val intentFilter = IntentFilter()
+            intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED)
+            intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED)
+            intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED)
+            intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE)
+            return intentFilter
+        }
+    }
 }

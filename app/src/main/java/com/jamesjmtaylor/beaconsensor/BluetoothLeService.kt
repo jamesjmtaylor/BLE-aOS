@@ -26,7 +26,7 @@ class BluetoothLeService : Service() {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 intentAction = ACTION_GATT_CONNECTED
                 mConnectionState = STATE_CONNECTED
-                broadcastUpdate(intentAction)
+                broadcastUpdate(intentAction, gatt.device)
                 Timber.i("Connected to GATT server.")
                 // Attempts to discover services after successful connection.
                 Timber.i("Attempting to start service discovery:" + mBluetoothGatt!!.discoverServices())
@@ -35,13 +35,13 @@ class BluetoothLeService : Service() {
                 intentAction = ACTION_GATT_DISCONNECTED
                 mConnectionState = STATE_DISCONNECTED
                 Timber.i("Disconnected from GATT server.")
-                broadcastUpdate(intentAction)
+                broadcastUpdate(intentAction, gatt.device)
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED)
+                broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED, gatt.device)
             } else {
                 Timber.w("onServicesDiscovered received: $status")
             }
@@ -72,8 +72,9 @@ class BluetoothLeService : Service() {
     val supportedGattServices: List<BluetoothGattService>?
         get() = if (mBluetoothGatt == null) null else mBluetoothGatt!!.services
 
-    private fun broadcastUpdate(action: String) {
+    private fun broadcastUpdate(action: String, device: BluetoothDevice) {
         val intent = Intent(action)
+        intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device)
         sendBroadcast(intent)
     }
 
@@ -287,11 +288,11 @@ class BluetoothLeService : Service() {
         private val STATE_CONNECTING = 1
         private val STATE_CONNECTED = 2
 
-        val ACTION_GATT_CONNECTED = "com.example.bluetooth.le.ACTION_GATT_CONNECTED"
-        val ACTION_GATT_DISCONNECTED = "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED"
-        val ACTION_GATT_SERVICES_DISCOVERED = "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED"
-        val ACTION_DATA_AVAILABLE = "com.example.bluetooth.le.ACTION_DATA_AVAILABLE"
-        val EXTRA_DATA = "com.example.bluetooth.le.EXTRA_DATA"
+        val ACTION_GATT_CONNECTED = "com.jamesjmtaylor.beaconsensor.ACTION_GATT_CONNECTED"
+        val ACTION_GATT_DISCONNECTED = "com.jamesjmtaylor.beaconsensor.ACTION_GATT_DISCONNECTED"
+        val ACTION_GATT_SERVICES_DISCOVERED = "com.jamesjmtaylor.beaconsensor.ACTION_GATT_SERVICES_DISCOVERED"
+        val ACTION_DATA_AVAILABLE = "com.jamesjmtaylor.beaconsensor.ACTION_DATA_AVAILABLE"
+        val EXTRA_DATA = "com.jamesjmtaylor.beaconsensor.EXTRA_DATA"
 
         val UUID_HEART_RATE_MEASUREMENT = UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT)
     }
