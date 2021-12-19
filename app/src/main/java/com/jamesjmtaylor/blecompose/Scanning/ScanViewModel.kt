@@ -29,7 +29,7 @@ data class ViewState(val scanning: Boolean = false,
                      val connectionStatus: ConnectionStatus = ConnectionStatus.disconnected)
 
 //Constructor injection of liveData for testing & compose preview purposes
-class MainViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), BleListener {
+class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), BleListener {
     @SuppressLint("StaticFieldLeak") // OnClear() below removes circular reference memory leak
     private var bleService: BleService? = null
     private var deviceAddress: String? = null

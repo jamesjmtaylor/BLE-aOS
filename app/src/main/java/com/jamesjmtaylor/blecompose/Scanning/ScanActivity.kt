@@ -1,5 +1,6 @@
-package com.jamesjmtaylor.blecompose
+package com.jamesjmtaylor.blecompose.Scanning
 
+import android.Manifest
 import android.bluetooth.le.ScanResult
 import android.content.res.Configuration
 import android.os.Bundle
@@ -24,38 +25,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.jamesjmtaylor.blecompose.ScanViewModel
+import com.jamesjmtaylor.blecompose.ViewState
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
-data class Message(val author: String, val body: String)
-class MainActivity : ComponentActivity() {
-    val vm : MainViewModel by viewModels()
+class ScanActivity : ComponentActivity() {
+    val vm : ScanViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            BLEComposeTheme {
-                MainView(vm)
-            }
-        }
+        setContent { BLEComposeTheme { ScanView(vm) } }
     }
 }
 
 @Composable
-fun MainView(vm: MainViewModel) {
+fun ScanView(vm: ScanViewModel) {
     ScanResults(vm)
 }
 
 @Composable
-fun ScanResults(vm: MainViewModel) {
+fun ScanResults(vm: ScanViewModel) {
+    val context = LocalContext.current
+    val permission = Manifest.permission.BLUETOOTH
     val viewState by vm.viewLiveData.observeAsState()
+    var showPermissionRequest by remember{ mutableStateOf(false) }
+    if (showPermissionRequest) {
+        PermissionView(context, permission,
+            onPermissionGranted = { vm.toggleScan() },
+            onPermissionDenied = { makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }
+        )
+    }
     if (viewState?.scanning == true) LiveDataLoadingComponent()
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)){
-        Button(onClick = { vm.toggleScan() }) {
+        Button(onClick = {
+            showPermissionRequest = true
+        }) {
             Text(if (viewState?.scanning == true) "Scanning" else "Scan")
         }}
         viewState?.scanResults?.let { results ->
@@ -70,6 +78,7 @@ fun ScanResults(vm: MainViewModel) {
         makeText(LocalContext.current, viewState?.state, Toast.LENGTH_LONG).show()
     }
 }
+
 @Composable
 fun LiveDataLoadingComponent() {
     Column(
@@ -96,7 +105,7 @@ fun ScanResult(s: ScanResult) {
 fun PreviewConversation() {
     val vs = MutableLiveData<ViewState>()
     vs.value = ViewState(scanResults = SampleData.scanResults)
-    val vm = MainViewModel(vs)
+    val vm = ScanViewModel(vs)
     BLEComposeTheme {
         ScanResults(vm)
     }
