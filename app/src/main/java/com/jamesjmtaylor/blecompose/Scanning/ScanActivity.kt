@@ -1,12 +1,18 @@
 package com.jamesjmtaylor.blecompose.Scanning
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.os.Binder
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.Toast
 import android.widget.Toast.makeText
 import androidx.activity.ComponentActivity
@@ -31,16 +37,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
 import com.jamesjmtaylor.blecompose.ScanViewModel
 import com.jamesjmtaylor.blecompose.ViewState
+import com.jamesjmtaylor.blecompose.services.BleListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
+import timber.log.Timber
 
 class ScanActivity : ComponentActivity() {
     val vm : ScanViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val serviceIntent = Intent(this, BleService::class.java)
-        bindService(serviceIntent, vm.serviceConnection, BIND_AUTO_CREATE)
+
+        vm.bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+        vm.bluetoothAdapter = vm.bluetoothManager?.adapter
+//        val serviceIntent = Intent(this, BleService::class.java)
+//        bindService(serviceIntent, vm.serviceConnection, BIND_AUTO_CREATE)
         setContent { BLEComposeTheme { ScanView(vm) } }
     }
 
@@ -83,7 +94,7 @@ fun ScanResults(vm: ScanViewModel) {
     if (showPermissionRequest) {
         showPermissionRequest = false
         PermissionView(context, permissions,
-            onPermissionGranted = { vm.toggleScan() },
+            onPermissionGranted = { vm.scan() },
             onPermissionDenied = { makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }
         )
     }
