@@ -3,6 +3,7 @@ package com.jamesjmtaylor.blecompose.Scanning
 import android.Manifest
 import android.bluetooth.le.ScanResult
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -42,28 +43,45 @@ class ScanActivity : ComponentActivity() {
         bindService(serviceIntent, vm.serviceConnection, BIND_AUTO_CREATE)
         setContent { BLEComposeTheme { ScanView(vm) } }
     }
+
+//TODO: Check if BLE is turned on (not just permissions)
+//    private fun PackageManager.missingSystemFeature(name: String): Boolean = !hasSystemFeature(name)
+//// Check to see if the Bluetooth classic feature is available.
+//    .takeIf { it.missingSystemFeature(PackageManager.FEATURE_BLUETOOTH) }?.also {
+//        Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show()
+//        finish()
+//    }
+//// Check to see if the BLE feature is available.
+//    packageManager.takeIf { it.missingSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) }?.also {
+//        Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show()
+//        finish()
+//    }
 }
 
 @Composable
 fun ScanView(vm: ScanViewModel) {
     ScanResults(vm)
 }
-
 @Composable
 fun ScanResults(vm: ScanViewModel) {
     val context = LocalContext.current
     val permissions = mutableListOf(
         Manifest.permission.BLUETOOTH,
         Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.FOREGROUND_SERVICE)
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.FOREGROUND_SERVICE,
+        Manifest.permission.BLUETOOTH_ADMIN)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         permissions.add(Manifest.permission.BLUETOOTH_SCAN)
         permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-        permissions.add(Manifest.permission.BLUETOOTH_ADMIN)
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //TODO: Might be required?
+//        permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
     }
+
     val viewState by vm.viewLiveData.observeAsState()
     var showPermissionRequest by remember{ mutableStateOf(false) }
     if (showPermissionRequest) {
+        showPermissionRequest = false
         PermissionView(context, permissions,
             onPermissionGranted = { vm.toggleScan() },
             onPermissionDenied = { makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }

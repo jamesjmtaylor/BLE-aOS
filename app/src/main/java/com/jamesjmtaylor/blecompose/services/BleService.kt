@@ -28,7 +28,22 @@ class BleService  : Service() {
     }
 
     fun scan(bleListener: BleListener){
-        bluetoothAdapter?.bluetoothLeScanner?.startScan(bleListener.scanCallback)
+        bluetoothAdapter?.bluetoothLeScanner?.startScan(object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult?) {
+                Timber.d("SCANNER-onScanResult")
+                super.onScanResult(callbackType, result)
+            }
+
+            override fun onBatchScanResults(results: MutableList<ScanResult>?) {
+                Timber.d("SCANNER-onBatchScanResults")
+                super.onBatchScanResults(results)
+            }
+
+            override fun onScanFailed(errorCode: Int) {
+                Timber.d("SCANNER-onScanFailed")
+                super.onScanFailed(errorCode)
+            }
+        })
     }
 
     fun stopScan(bleListener: BleListener){
