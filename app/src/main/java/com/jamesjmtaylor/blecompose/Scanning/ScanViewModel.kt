@@ -30,13 +30,15 @@ data class ViewState(val scanning: Boolean = false,
 
 //Constructor injection of liveData for testing & compose preview purposes
 class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), BleListener {
-    @SuppressLint("StaticFieldLeak") // OnClear() below removes circular reference memory leak
-    private var bleService: BleService? = null
     private var deviceAddress: String? = null
     private var scanning = false
     private var scanResults = mutableListOf<ScanResult>()
     val viewLiveData: LiveData<ViewState> get() = viewMutableLiveData
 
+
+
+    @SuppressLint("StaticFieldLeak") // OnClear() below removes circular reference memory leak
+    private var bleService: BleService? = null
     override fun onCleared() {
         bleService?.clearListener()
         super.onCleared()
@@ -49,7 +51,7 @@ class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState>
     }
 
     // Code to manage Service lifecycle.
-    private val serviceConnection: ServiceConnection = object : ServiceConnection {
+    val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(componentName: ComponentName, service: IBinder) {
             bleService = (service as BleService.LocalBinder).service
             if (bleService?.initialize() != true) Timber.e("Unable to initialize Bluetooth")

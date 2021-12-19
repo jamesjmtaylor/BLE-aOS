@@ -35,27 +35,21 @@ class BleService  : Service() {
         bluetoothAdapter?.bluetoothLeScanner?.stopScan(bleListener.scanCallback)
     }
 
-
-
-    private fun broadcastUpdate(action: String) {
-        sendBroadcast(Intent(action))
-    }
-
-    private fun broadcastUpdate(action: String,characteristic: BluetoothGattCharacteristic) {
-        val intent = Intent(action)
-
-        //For all profiles write the data formatted in HEX.
-        val data = characteristic.value
-        if (data != null && data.size > 0) {
-            val stringBuilder = StringBuilder(data.size)
-            for (byteChar in data) stringBuilder.append(String.format("%02X ", byteChar))
-            intent.putExtra(EXTRA_DATA, """
-                ${String(data)}
-                $stringBuilder
-                """.trimIndent())
-        }
-        sendBroadcast(intent)
-    }
+//    private fun broadcastUpdate(action: String,characteristic: BluetoothGattCharacteristic) {
+//        val intent = Intent(action)
+//
+//        //For all profiles write the data formatted in HEX.
+//        val data = characteristic.value
+//        if (data != null && data.size > 0) {
+//            val stringBuilder = StringBuilder(data.size)
+//            for (byteChar in data) stringBuilder.append(String.format("%02X ", byteChar))
+//            intent.putExtra(EXTRA_DATA, """
+//                ${String(data)}
+//                $stringBuilder
+//                """.trimIndent())
+//        }
+//        sendBroadcast(intent)
+//    }
 
     private val binder: IBinder = LocalBinder()
     inner class LocalBinder : Binder() {
@@ -71,45 +65,18 @@ class BleService  : Service() {
         return super.onUnbind(intent)
     }
 
-    //TODO: This method feels like it could be cleaned up...
     fun initialize(): Boolean { //Return true if the initialization is successful.
         if (bluetoothManager == null) {
             bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-            if (bluetoothManager == null) {
-                Timber.e("Unable to initialize BluetoothManager.")
-                return false
-            }
+            if (bluetoothManager == null)  return false
         }
         bluetoothAdapter = bluetoothManager?.adapter
-        if (bluetoothAdapter == null) {
-            Timber.e("Unable to obtain a BluetoothAdapter.")
-            return false
-        }
-        return true
+        return bluetoothAdapter != null
     }
 
-    //TODO: This method feels like it could be cleaned up...
     fun connect(address: String?): Boolean { //Return true if the connection is successful.
-        if (bluetoothAdapter == null || address == null) {
-            Timber.w("BluetoothAdapter not initialized or unspecified address.")
-            return false
-        }
-
-        // Previously connected device.  Try to reconnect.
-        if (bluetoothDeviceAddress != null && address == bluetoothDeviceAddress && bluetoothGatt != null) {
-            Timber.d("Trying to use an existing mBluetoothGatt for connection.")
-            return if (bluetoothGatt?.connect() == true) {
-                connectionState = STATE_CONNECTING
-                true
-            } else {
-                false
-            }
-        }
-        val device = bluetoothAdapter?.getRemoteDevice(address)
-        if (device == null) {
-            Timber.w("Device not found.  Unable to connect.")
-            return false
-        }
+        if (bluetoothAdapter == null || address == null)  return false
+        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
 
         bluetoothGatt = device.connectGatt(this, false, bleListener?.gattCallback)
         Timber.d("Trying to create a new connection.")

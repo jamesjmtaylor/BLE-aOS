@@ -8,13 +8,17 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 
 @Composable
-fun PermissionView(context: Context, permission: String, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
-    val permissionGranted = (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED)
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-        if (isGranted) onPermissionGranted()
+fun PermissionView(context: Context, permissions: List<String>, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
+    val permissionsGranted = permissions.map {
+        (ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED)
+    }.reduce { p1, p2 -> p1 && p2 }
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val allGranted = results.map { it.value }.reduce { p1, p2 -> p1 && p2 }
+        if (allGranted) onPermissionGranted()
         else onPermissionDenied()
     }
 
-    if (permissionGranted) onPermissionGranted()
-    else SideEffect { launcher.launch(permission) }
+    if (permissionsGranted) onPermissionGranted()
+    else SideEffect { launcher.launch(permissions.toTypedArray()) }
 }
