@@ -1,18 +1,12 @@
 package com.jamesjmtaylor.blecompose.Scanning
 
+import SampleData
 import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.os.Binder
 import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.widget.Toast
 import android.widget.Toast.makeText
 import androidx.activity.ComponentActivity
@@ -35,46 +29,30 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
-import com.jamesjmtaylor.blecompose.ScanViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.jamesjmtaylor.blecompose.App
+import com.jamesjmtaylor.blecompose.BleViewModel
 import com.jamesjmtaylor.blecompose.ViewState
-import com.jamesjmtaylor.blecompose.services.BleListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
-import timber.log.Timber
 
 class ScanActivity : ComponentActivity() {
-    val vm : ScanViewModel by viewModels()
+    lateinit var vm : BleViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        vm.bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-        vm.bluetoothAdapter = vm.bluetoothManager?.adapter
-//        val serviceIntent = Intent(this, BleService::class.java)
-//        bindService(serviceIntent, vm.serviceConnection, BIND_AUTO_CREATE)
+        vm = ViewModelProvider(App.instance).get(BleViewModel::class.java)
+        Intent(this, BleService::class.java).also { startService(it) }
         setContent { BLEComposeTheme { ScanView(vm) } }
     }
-
-//TODO: Check if BLE is turned on (not just permissions)
-//    private fun PackageManager.missingSystemFeature(name: String): Boolean = !hasSystemFeature(name)
-//// Check to see if the Bluetooth classic feature is available.
-//    .takeIf { it.missingSystemFeature(PackageManager.FEATURE_BLUETOOTH) }?.also {
-//        Toast.makeText(this, "Bluetooth not supported", Toast.LENGTH_SHORT).show()
-//        finish()
-//    }
-//// Check to see if the BLE feature is available.
-//    packageManager.takeIf { it.missingSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) }?.also {
-//        Toast.makeText(this, "BLE not supported", Toast.LENGTH_SHORT).show()
-//        finish()
-//    }
 }
 
 @Composable
-fun ScanView(vm: ScanViewModel) {
+fun ScanView(vm: BleViewModel) {
     ScanResults(vm)
 }
 @Composable
-fun ScanResults(vm: ScanViewModel) {
+fun ScanResults(vm: BleViewModel) {
     val context = LocalContext.current
     val permissions = mutableListOf(
         Manifest.permission.BLUETOOTH,
@@ -85,8 +63,6 @@ fun ScanResults(vm: ScanViewModel) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         permissions.add(Manifest.permission.BLUETOOTH_SCAN)
         permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //TODO: Might be required?
-//        permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
     }
 
     val viewState by vm.viewLiveData.observeAsState()
@@ -147,7 +123,7 @@ fun ScanResult(s: ScanResult) {
 fun PreviewConversation() {
     val vs = MutableLiveData<ViewState>()
     vs.value = ViewState(scanResults = SampleData.scanResults)
-    val vm = ScanViewModel(vs)
+    val vm = BleViewModel(vs)
     BLEComposeTheme {
         ScanResults(vm)
     }

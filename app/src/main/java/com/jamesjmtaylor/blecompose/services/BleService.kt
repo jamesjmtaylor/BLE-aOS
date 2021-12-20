@@ -1,133 +1,76 @@
 ﻿package com.jamesjmtaylor.blecompose.services
 
-import android.app.*
-import android.bluetooth.*
-import android.bluetooth.BluetoothAdapter.STATE_CONNECTED
-import android.bluetooth.BluetoothAdapter.STATE_CONNECTING
-import android.bluetooth.BluetoothAdapter.STATE_DISCONNECTED
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanResult
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.BluetoothLeAdvertiser
+import android.content.Context
 import android.content.Intent
-import android.nfc.NfcAdapter.EXTRA_DATA
-import android.os.Binder
-import android.os.IBinder
-import timber.log.Timber
-import java.lang.StringBuilder
-import java.util.*
-interface BleListener { val scanCallback: ScanCallback; val gattCallback: BluetoothGattCallback}
-class BleService  : Service() {
-    private var bluetoothManager: BluetoothManager? = null
-    private var bluetoothAdapter: BluetoothAdapter? = null
-    private var bluetoothGatt: BluetoothGatt? = null
-    private var bluetoothDeviceAddress: String? = null
-    private var connectionState: Int = STATE_DISCONNECTED
-    private var bleListener : BleListener? = null
+import android.os.Handler
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.ViewModelProvider
+import com.jamesjmtaylor.blecompose.App
+import com.jamesjmtaylor.blecompose.BleViewModel
+import com.jamesjmtaylor.blecompose.R
+import com.jamesjmtaylor.blecompose.Scanning.ScanActivity
 
-    fun clearListener(){
-        bleListener = null
+//NOTE: Based on AdvertiserService in Bluetooth Advertisements Kotlin
+//Also references https://stackoverflow.com/questions/53382320/boundservice-livedata-viewmodel-best-practice-in-new-android-recommended-arc
+const val FOREGROUND_NOTIFICATION_ID = 3
+const val BLE_NOTIFICATION_CHANNEL_ID = "bleChl"
+class BleService : LifecycleService() {
+    private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
+    private var handler: Handler? = null
+    lateinit var vm : BleViewModel
+    override fun onCreate() {
+        running = true
+        initialize()
+        super.onCreate()
     }
 
-    fun scan(bleListener: BleListener){
-        bluetoothAdapter?.bluetoothLeScanner?.startScan(object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult?) {
-                Timber.d("SCANNER-onScanResult")
-                super.onScanResult(callbackType, result)
-            }
-
-            override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-                Timber.d("SCANNER-onBatchScanResults")
-                super.onBatchScanResults(results)
-            }
-
-            override fun onScanFailed(errorCode: Int) {
-                Timber.d("SCANNER-onScanFailed")
-                super.onScanFailed(errorCode)
-            }
-        })
+    override fun onDestroy() {
+        running = false
+        handler?.removeCallbacksAndMessages(null) // this is a generic way for removing tasks
+        stopForeground(true)
+        super.onDestroy()
     }
 
-    fun stopScan(bleListener: BleListener){
-        bluetoothAdapter?.bluetoothLeScanner?.stopScan(bleListener.scanCallback)
-    }
-
-//    private fun broadcastUpdate(action: String,characteristic: BluetoothGattCharacteristic) {
-//        val intent = Intent(action)
-//
-//        //For all profiles write the data formatted in HEX.
-//        val data = characteristic.value
-//        if (data != null && data.size > 0) {
-//            val stringBuilder = StringBuilder(data.size)
-//            for (byteChar in data) stringBuilder.append(String.format("%02X ", byteChar))
-//            intent.putExtra(EXTRA_DATA, """
-//                ${String(data)}
-//                $stringBuilder
-//                """.trimIndent())
-//        }
-//        sendBroadcast(intent)
-//    }
-
-    private val binder: IBinder = LocalBinder()
-    inner class LocalBinder : Binder() {
-        internal val service: BleService get() = this@BleService
-    }
-
-    override fun onBind(intent: Intent?): IBinder {
-        return binder
-    }
-    // After using a given device, you should make sure that BluetoothGatt.close() is called
-    override fun onUnbind(intent: Intent?): Boolean {
-        close()
-        return super.onUnbind(intent)
-    }
-
-    fun initialize(): Boolean { //Return true if the initialization is successful.
-        if (bluetoothManager == null) {
-            bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-            if (bluetoothManager == null)  return false
+    private fun initialize() {
+        vm = ViewModelProvider(App.instance).get(BleViewModel::class.java)
+        if (bluetoothLeAdvertiser == null) {
+            val manager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            val bluetoothAdapter: BluetoothAdapter = manager.adapter
+            bluetoothLeAdvertiser = bluetoothAdapter.bluetoothLeAdvertiser
         }
-        bluetoothAdapter = bluetoothManager?.adapter
-        return bluetoothAdapter != null
+        launchForegroundNotification()
     }
 
-    fun connect(address: String?): Boolean { //Return true if the connection is successful.
-        if (bluetoothAdapter == null || address == null)  return false
-        val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
+    private fun launchForegroundNotification() {
+        val notificationIntent = Intent(this, ScanActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
 
-        bluetoothGatt = device.connectGatt(this, false, bleListener?.gattCallback)
-        Timber.d("Trying to create a new connection.")
-        bluetoothDeviceAddress = address
-        connectionState = STATE_CONNECTING
-        return true
+        val bleNotificationChannel = NotificationChannel(
+            BLE_NOTIFICATION_CHANNEL_ID, "BLE",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val nManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        nManager.createNotificationChannel(bleNotificationChannel)
+        val nBuilder = Notification.Builder(this, BLE_NOTIFICATION_CHANNEL_ID)
+
+        val notification = nBuilder.setContentTitle("BLE Service")
+            .setContentText("BLE Scanner for the BLE Compose app is active.")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pendingIntent)
+            .build()
+        startForeground(FOREGROUND_NOTIFICATION_ID, notification)
     }
 
-    fun disconnect() { //Disconnects an existing connection or cancel a pending connection.
-        if (bluetoothGatt == null) Timber.e("disconnect error: bluetoothGatt == null")
-        bluetoothGatt?.disconnect()
-    }
-
-    fun close() { //After using a given BLE device, app must call this to release resources
-        if (bluetoothGatt == null) Timber.e("close error: bluetoothGatt == null")
-        bluetoothGatt?.close()
-        bluetoothGatt = null
-    }
-
-    fun readCharacteristic(characteristic: BluetoothGattCharacteristic?) { //Request a read on a given `BluetoothGattCharacteristic`
-        if (bluetoothGatt == null) Timber.e("readCharacteristic error: bluetoothGatt == null")
-        bluetoothGatt?.readCharacteristic(characteristic)
-    }
-
-    //enable notifications for a given characteristic.
-    fun setCharacteristicNotification(characteristic: BluetoothGattCharacteristic, enabled: Boolean) {
-        if (bluetoothGatt == null) Timber.e("setCharacteristicNotification error: bluetoothGatt == null")
-        bluetoothGatt?.setCharacteristicNotification(characteristic, enabled)
-    }
-
-    fun getSupportedGattServices(): List<BluetoothGattService?>? {
-        if (bluetoothGatt == null) Timber.e("getSupportedGattServices error: bluetoothGatt == null")
-        return bluetoothGatt?.services
-    }
-
-    fun discoverServices() {
-        bluetoothGatt?.discoverServices()
+    companion object {
+        // A global variable to let activities check if the Service is running without needing to start/bind it
+        // This is the best practice as defined here: https://groups.google.com/forum/#!topic/android-developers/jEvXMWgbgzE
+        var running: Boolean = false
     }
 }

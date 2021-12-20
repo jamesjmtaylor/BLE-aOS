@@ -34,7 +34,7 @@
       </intent-filter>
     </activity>
 
-    <service android:name="com.jamesjmtaylor.blecompose.services.BleService" android:stopWithTask="true" />
+    <service android:name="com.jamesjmtaylor.blecompose.services.BleService" />
 
   </application>
 

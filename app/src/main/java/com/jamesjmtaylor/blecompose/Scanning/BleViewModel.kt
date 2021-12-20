@@ -11,7 +11,6 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.jamesjmtaylor.blecompose.services.BleListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import kotlinx.coroutines.delay
 import timber.log.Timber
@@ -31,38 +30,17 @@ data class ViewState(val scanning: Boolean = false,
                      val connectionStatus: ConnectionStatus = ConnectionStatus.disconnected)
 
 //Constructor injection of liveData for testing & compose preview purposes
-class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel() {
+class BleViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel() {
     private var deviceAddress: String? = null
     private var scanning = false
     private var scanResults = mutableListOf<ScanResult>()
     val viewLiveData: LiveData<ViewState> get() = viewMutableLiveData
-
-    @SuppressLint("StaticFieldLeak") // OnClear() below removes circular reference memory leak
-    private var bleService: BleService? = null
-    override fun onCleared() {
-        bleService?.clearListener()
-        super.onCleared()
-    }
-
-    // Code to manage Service lifecycle.
-    val serviceConnection: ServiceConnection = object : ServiceConnection {
-        override fun onServiceConnected(componentName: ComponentName, service: IBinder) {
-            bleService = (service as BleService.LocalBinder).service
-            if (bleService?.initialize() != true) Timber.e("Unable to initialize Bluetooth")
-            else bleService?.connect(deviceAddress)
-        }
-
-        override fun onServiceDisconnected(componentName: ComponentName) {
-            bleService = null
-        }
-    }
 
     var bluetoothManager: BluetoothManager? = null
     var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothGatt: BluetoothGatt? = null
     private var bluetoothDeviceAddress: String? = null
     private var connectionState: Int = BluetoothAdapter.STATE_DISCONNECTED
-    private var bleListener : BleListener? = null
 
     fun scan(){
         bluetoothAdapter?.bluetoothLeScanner?.startScan(object : ScanCallback() {
@@ -89,7 +67,7 @@ class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState>
         })
     }
 
-    fun stopScan(bleListener: BleListener){
-        bluetoothAdapter?.bluetoothLeScanner?.stopScan(bleListener.scanCallback)
+    fun stopScan(){
+//        bluetoothAdapter?.bluetoothLeScanner?.stopScan()
     }
 }
