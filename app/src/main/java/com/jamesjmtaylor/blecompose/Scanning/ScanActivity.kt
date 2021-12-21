@@ -3,15 +3,18 @@ package com.jamesjmtaylor.blecompose.Scanning
 import SampleData
 import android.Manifest
 import android.bluetooth.le.ScanResult
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.Toast
 import android.widget.Toast.makeText
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,31 +31,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider
-import com.jamesjmtaylor.blecompose.App
-import com.jamesjmtaylor.blecompose.BleViewModel
+import com.jamesjmtaylor.blecompose.ScanViewModel
 import com.jamesjmtaylor.blecompose.ViewState
+import com.jamesjmtaylor.blecompose.services.BleListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 class ScanActivity : ComponentActivity() {
-    lateinit var vm : BleViewModel
+    var bleService: BleService? = null
+    private var vm : ScanViewModel? = null
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName?, service: IBinder?) {
+            bleService = (service as BleService.LocalBinder).getService()
+            bleService?.bleListener = vm as BleListener
+        }
+        override fun onServiceDisconnected(p0: ComponentName?) {}
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Intent(this, BleService::class.java).also { intent ->
+            bindService(intent,connection, Context.BIND_AUTO_CREATE)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        vm = ViewModelProvider(App.instance).get(BleViewModel::class.java)
-        Intent(this, BleService::class.java).also { startService(it) }
-        setContent { BLEComposeTheme { ScanView(vm) } }
+        vm = ViewModelProvider(this).get(ScanViewModel::class.java)
+        vm?.let { setContent { BLEComposeTheme { ScanView(it) } } }
     }
 }
 
 @Composable
-fun ScanView(vm: BleViewModel) {
+fun ScanView(vm: ScanViewModel) {
     ScanResults(vm)
 }
 @Composable
-fun ScanResults(vm: BleViewModel) {
+fun ScanResults(vm: ScanViewModel) {
     val context = LocalContext.current
     val permissions = mutableListOf(
         Manifest.permission.BLUETOOTH,
@@ -66,11 +84,11 @@ fun ScanResults(vm: BleViewModel) {
     }
 
     val viewState by vm.viewLiveData.observeAsState()
-    var showPermissionRequest by remember{ mutableStateOf(false) }
-    if (showPermissionRequest) {
-        showPermissionRequest = false
+    var checkPermissions by remember{ mutableStateOf(false) }
+    if (checkPermissions) {
+        checkPermissions = false
         PermissionView(context, permissions,
-            onPermissionGranted = { vm.scan() },
+            onPermissionGranted = {  (context as ScanActivity).bleService?.toggleScan() },
             onPermissionDenied = { makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }
         )
     }
@@ -80,9 +98,9 @@ fun ScanResults(vm: BleViewModel) {
             .fillMaxWidth()
             .padding(8.dp)){
         Button(onClick = {
-            showPermissionRequest = true
+            checkPermissions = true
         }) {
-            Text(if (viewState?.scanning == true) "Scanning" else "Scan")
+            Text(if (viewState?.scanning == true) "Stop Scan" else "Scan")
         }}
         viewState?.scanResults?.let { results ->
             LazyColumn {
@@ -102,7 +120,7 @@ fun LiveDataLoadingComponent() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = CenterHorizontally
     ) {
         CircularProgressIndicator(modifier = Modifier.wrapContentWidth(CenterHorizontally))
     }
@@ -110,11 +128,13 @@ fun LiveDataLoadingComponent() {
 
 @Composable
 fun ScanResult(s: ScanResult) {
-        Column(modifier = Modifier.clickable {
+        Text(text = s.device.name ?: s.device.address ?: "No name assigned",
+            fontSize = 16.sp,
+            color=colors.secondaryVariant,
+            modifier = Modifier.clickable {
             //TODO: Connect & segue here
-        }) {
-            Text(s.scanRecord?.deviceName ?: "No name assigned", color=colors.secondaryVariant)
-        }
+        }.fillMaxWidth().padding(16.dp, 8.dp))
+
 }
 
 @Preview(showBackground = true, name = "Light Mode")
@@ -123,7 +143,7 @@ fun ScanResult(s: ScanResult) {
 fun PreviewConversation() {
     val vs = MutableLiveData<ViewState>()
     vs.value = ViewState(scanResults = SampleData.scanResults)
-    val vm = BleViewModel(vs)
+    val vm = ScanViewModel(vs)
     BLEComposeTheme {
         ScanResults(vm)
     }

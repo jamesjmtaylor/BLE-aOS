@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import timber.log.Timber
 
-class App : Application(), ViewModelStoreOwner {
+class App : Application() {
 
     companion object {
         lateinit var instance: App
@@ -19,10 +19,5 @@ class App : Application(), ViewModelStoreOwner {
 
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         Timber.d("App started up")
-    }
-
-    private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
-    override fun getViewModelStore(): ViewModelStore {
-        return appViewModelStore
     }
 }

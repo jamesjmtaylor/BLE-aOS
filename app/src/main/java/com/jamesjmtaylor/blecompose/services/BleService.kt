@@ -1,19 +1,18 @@
 ﻿package com.jamesjmtaylor.blecompose.services
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
+import android.app.*
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
 import android.content.Context
 import android.content.Intent
+import android.os.Binder
 import android.os.Handler
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.ViewModelProvider
-import com.jamesjmtaylor.blecompose.App
-import com.jamesjmtaylor.blecompose.BleViewModel
+import android.os.IBinder
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import com.jamesjmtaylor.blecompose.R
 import com.jamesjmtaylor.blecompose.Scanning.ScanActivity
 
@@ -21,10 +20,27 @@ import com.jamesjmtaylor.blecompose.Scanning.ScanActivity
 //Also references https://stackoverflow.com/questions/53382320/boundservice-livedata-viewmodel-best-practice-in-new-android-recommended-arc
 const val FOREGROUND_NOTIFICATION_ID = 3
 const val BLE_NOTIFICATION_CHANNEL_ID = "bleChl"
-class BleService : LifecycleService() {
-    private var bluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
+//Interface is to keep access to vm methods to a bare minimum
+interface BleListener {
+    val scanCallback : ScanCallback
+    fun setScanning(scanning: Boolean)
+    fun getScanning(): Boolean
+}
+
+//ViewModelStoreOwner allows Service to be custodian of the VM, cleaning it up once no longer needed
+class BleService : Service(),  ViewModelStoreOwner {
+    var bleListener: BleListener? = null
+    private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var handler: Handler? = null
-    lateinit var vm : BleViewModel
+    //Binding is needed if you want your views to be able to invoke service methods, i.e. scan()
+    var binder: IBinder = LocalBinder()
+    override fun onBind(intent: Intent?): IBinder {
+        return binder
+    }
+    inner class LocalBinder : Binder() {
+        fun getService(): BleService = this@BleService
+    }
+
     override fun onCreate() {
         running = true
         initialize()
@@ -39,11 +55,10 @@ class BleService : LifecycleService() {
     }
 
     private fun initialize() {
-        vm = ViewModelProvider(App.instance).get(BleViewModel::class.java)
-        if (bluetoothLeAdvertiser == null) {
+        if (bluetoothLeScanner == null) {
             val manager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val bluetoothAdapter: BluetoothAdapter = manager.adapter
-            bluetoothLeAdvertiser = bluetoothAdapter.bluetoothLeAdvertiser
+            bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
         }
         launchForegroundNotification()
     }
@@ -66,6 +81,21 @@ class BleService : LifecycleService() {
             .setContentIntent(pendingIntent)
             .build()
         startForeground(FOREGROUND_NOTIFICATION_ID, notification)
+    }
+
+    private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
+    override fun getViewModelStore(): ViewModelStore {
+        return appViewModelStore
+    }
+
+    fun toggleScan() {
+        if (bleListener?.getScanning() == false) {
+            bluetoothLeScanner?.startScan(bleListener?.scanCallback)
+            bleListener?.setScanning(true)
+        } else {
+            bluetoothLeScanner?.stopScan(bleListener?.scanCallback)
+            bleListener?.setScanning(false)
+        }
     }
 
     companion object {
