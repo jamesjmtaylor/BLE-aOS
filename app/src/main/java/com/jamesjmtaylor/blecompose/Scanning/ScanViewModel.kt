@@ -34,7 +34,7 @@ data class ViewState(val scanning: Boolean = false,
 class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), BleListener {
     private var deviceAddress: String? = null
     private var scanning = false
-    private var scanResults = mutableListOf<ScanResult>()
+    private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
     val viewLiveData: LiveData<ViewState> get() = viewMutableLiveData
 
     override fun setScanning(scanning: Boolean) {
@@ -45,8 +45,10 @@ class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState>
 
     override val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            scanResults.removeIf { r -> r.device.address == result?.device?.address }
-            result?.let { scanResults.add(result) }
+            val tempList = scanResults.toMutableList()
+            tempList.removeIf { r -> r.device.address == result?.device?.address }
+            result?.let { tempList.add(result) }
+            scanResults = tempList.toList()
             var callbackTypeString = ""
             when (callbackType){
                 SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> callbackTypeString = "Registration failed"
@@ -57,8 +59,10 @@ class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState>
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-            results?.map { scanResults.removeIf { r -> r.device.address == it.device?.address } }
-            results?.let { scanResults.addAll(results) }
+            val tempList = scanResults.toMutableList()
+            results?.map { tempList.removeIf { r -> r.device.address == it.device?.address } }
+            results?.let { tempList.addAll(results) }
+            scanResults = tempList.toList()
         }
 
         override fun onScanFailed(errorCode: Int) {
