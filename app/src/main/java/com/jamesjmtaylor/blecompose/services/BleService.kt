@@ -1,10 +1,7 @@
 ﻿package com.jamesjmtaylor.blecompose.services
 
 import android.app.*
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothManager
+import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.content.Context
@@ -17,6 +14,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.jamesjmtaylor.blecompose.ConnectionStatus
 import com.jamesjmtaylor.blecompose.R
 import com.jamesjmtaylor.blecompose.NavActivity
+import java.util.*
 
 //NOTE: Based on AdvertiserService in Bluetooth Advertisements Kotlin
 //Also references https://stackoverflow.com/questions/53382320/boundservice-livedata-viewmodel-best-practice-in-new-android-recommended-arc
@@ -29,9 +27,10 @@ interface ScanListener {
     fun getScanning(): Boolean
 }
 interface GattListener {
-    val gattCallback : BluetoothGattCallback
     fun setConnected(status: ConnectionStatus)
     fun getConnected(): ConnectionStatus
+    fun updateCharacteristic(bleChar: BluetoothGattCharacteristic)
+    fun updateServices(bleServices: List<BluetoothGattService>)
 }
 
 //ViewModelStoreOwner allows Service to be custodian of the VM, cleaning it up once no longer needed
@@ -108,9 +107,47 @@ class BleService : Service(),  ViewModelStoreOwner {
 
     fun toggleConnect(device: BluetoothDevice?) {
         if (gattListener?.getConnected() == ConnectionStatus.connected) {
-            bluetoothGatt = device?.connectGatt(this,false, gattListener?.gattCallback)
+            bluetoothGatt = device?.connectGatt(this,false, object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(gatt: BluetoothGatt?,status: Int,newState: Int) {
+                    when (val connectionStatus = intToConnectionStatus(newState)) {
+                        ConnectionStatus.connected -> bluetoothGatt?.discoverServices()
+                        else -> gattListener?.setConnected(connectionStatus)
+                    }
+                }
+                override fun onServiceChanged(gatt: BluetoothGatt) {
+                    gatt.services?.let { gattListener?.updateServices(it.toList())}
+                }
+                override fun onCharacteristicChanged(gatt: BluetoothGatt?,characteristic: BluetoothGattCharacteristic?) {
+                    characteristic?.let { gattListener?.updateCharacteristic(it) }
+                }
+                override fun onCharacteristicRead(gatt: BluetoothGatt?,characteristic: BluetoothGattCharacteristic?, status: Int) {
+                    characteristic?.let { gattListener?.updateCharacteristic(it) }
+                }
+            })
         } else {
-            bluetoothGatt
+            bluetoothGatt?.disconnect()
+        }
+    }
+
+    val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")//Client Characteristic Configuration Descriptor
+    //This descriptor type (often abbreviated CCCD) is without a doubt the most important and commonly used,
+    // and it is essential for the operation of most of the profiles and use cases. Its function is simple:
+    // it acts as a switch, enabling or disabling server-initiated updates
+    fun setCharacteristicNotification(bleChar: BluetoothGattCharacteristic, enabled: Boolean) {
+        bluetoothGatt?.setCharacteristicNotification(bleChar,enabled)
+        bleChar.getDescriptor(cccdUuid)?.let { cccd ->
+            cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            bluetoothGatt?.writeDescriptor(cccd)
+        }
+    }
+
+    private fun intToConnectionStatus(int: Int) : ConnectionStatus {
+        return when (int) {
+            BluetoothProfile.STATE_CONNECTED -> ConnectionStatus.connected
+            BluetoothProfile.STATE_CONNECTING -> ConnectionStatus.connecting
+            BluetoothProfile.STATE_DISCONNECTING -> ConnectionStatus.disconnecting
+            BluetoothProfile.STATE_DISCONNECTED -> ConnectionStatus.disconnected
+            else -> ConnectionStatus.disconnected
         }
     }
 
