@@ -1,28 +1,13 @@
 ﻿package com.jamesjmtaylor.blecompose
 
-import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import android.content.*
-import android.os.IBinder
-import androidx.activity.ComponentActivity
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.jamesjmtaylor.blecompose.services.BleListener
-import com.jamesjmtaylor.blecompose.services.BleService
-import kotlinx.coroutines.delay
-import timber.log.Timber
+import com.jamesjmtaylor.blecompose.services.ScanListener
 
-//TODO: Continue porting over logic from example code
-//TODO: Handle permissions request
-//TODO: Create new live data to update UI with
-//TODO: Update UI to display BLE data
-//TODO: Think about whether VMs should be persisting scanResults & Gatt Data, or if the BleService should
-//Loading, Content, Error
-data class LCE<T>(val loading: Boolean, val content: T? = null, val error: Throwable? = null)
 enum class ConnectionStatus { connecting, disconnecting, connected, disconnected }
 data class ViewState(val scanning: Boolean = false,
                      val scanResults: List<ScanResult>? = null,
@@ -31,7 +16,7 @@ data class ViewState(val scanning: Boolean = false,
                      val connectionStatus: ConnectionStatus = ConnectionStatus.disconnected)
 
 //Constructor injection of liveData for testing & compose preview purposes
-class ScanViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), BleListener {
+class BleViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), ScanListener {
     private var deviceAddress: String? = null
     private var scanning = false
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed

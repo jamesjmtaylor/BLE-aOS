@@ -1,15 +1,30 @@
-package com.jamesjmtaylor.blecompose.Scanning
+package com.jamesjmtaylor.blecompose.scan
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import timber.log.Timber
 
+
+
+
 @Composable
-fun PermissionView(context: Context, permissions: List<String>, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
+fun PermissionView(context: Context, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
+    val permissions = mutableListOf(
+        Manifest.permission.BLUETOOTH,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.FOREGROUND_SERVICE,
+        Manifest.permission.BLUETOOTH_ADMIN)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+        permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+    }
     val permissionsGranted = permissions.map {
         val granted = (ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED)
         Timber.d("$it permission already granted: $granted")
