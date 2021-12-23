@@ -6,27 +6,32 @@ import android.bluetooth.le.ScanResult
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.services.ScanListener
 
 enum class ConnectionStatus { connecting, disconnecting, connected, disconnected }
-data class ViewState(val scanning: Boolean = false,
-                     val scanResults: List<ScanResult>? = null,
-                     val state: String? = null,
-                     val gatt: BluetoothGatt? = null,
-                     val connectionStatus: ConnectionStatus = ConnectionStatus.disconnected)
+data class ScanViewState(val scanning: Boolean = false,
+                         val scanResults: List<ScanResult> = emptyList(),
+                         val state: String? = null)
+data class ConnectViewState(var connectionStatus: ConnectionStatus = ConnectionStatus.disconnected,
+                            val services: List<BluetoothGattService> = emptyList(),
+                            val characteristics: List<BluetoothGattCharacteristic> = emptyList())
 
 //Constructor injection of liveData for testing & compose preview purposes
-class BleViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> = MutableLiveData()): ViewModel(), ScanListener {
-    private var deviceAddress: String? = null
-    private var scanning = false
+class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanViewState> = MutableLiveData(),
+                   private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData()):
+    ViewModel(), ScanListener, GattListener {
+    var selectedDevice: BluetoothDevice? = null
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
-    val viewLiveData: LiveData<ViewState> get() = viewMutableLiveData
+    val scanViewLiveData: LiveData<ScanViewState> get() = scanViewMutableLiveData
+    val connectViewState: LiveData<ConnectViewState> get() = connectViewMutableLiveData
 
     override fun setScanning(scanning: Boolean) {
-        this.scanning = scanning
-        viewMutableLiveData.value = ViewState(scanning, scanResults)
+        scanViewMutableLiveData.value = ScanViewState(scanning, scanResults)
     }
-    override fun getScanning() : Boolean { return scanning }
+    override fun getScanning() : Boolean {
+        return scanViewLiveData.value?.scanning ?: false
+    }
 
     override val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -40,7 +45,7 @@ class BleViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> 
                 SCAN_FAILED_FEATURE_UNSUPPORTED -> callbackTypeString = "Ble not supported"
                 SCAN_FAILED_INTERNAL_ERROR -> callbackTypeString = "Ble internal error"
             }
-            viewMutableLiveData.value = ViewState(scanning, scanResults, callbackTypeString)
+            scanViewMutableLiveData.value  = ScanViewState(true, scanResults)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
@@ -48,11 +53,29 @@ class BleViewModel(private val viewMutableLiveData : MutableLiveData<ViewState> 
             results?.map { tempList.removeIf { r -> r.device.address == it.device?.address } }
             results?.let { tempList.addAll(results) }
             scanResults = tempList.toList()
+            scanViewMutableLiveData.value = ScanViewState(true, scanResults)
         }
 
         override fun onScanFailed(errorCode: Int) {
-            scanning = false
-            viewMutableLiveData.value = ViewState(scanning,scanResults,"onScanFailed errorCode: $errorCode")
+            scanViewMutableLiveData.value = ScanViewState(false,scanResults,"onScanFailed errorCode: $errorCode")
         }
     }
+
+    override fun setConnected(status: ConnectionStatus) {
+        connectViewMutableLiveData.value = ConnectViewState(status)
+    }
+
+    override fun getConnected(): ConnectionStatus {
+        return connectViewState.value?.connectionStatus ?: ConnectionStatus.disconnected
+    }
+
+    override fun updateServices(bleServices: List<BluetoothGattService>) {
+        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, bleServices)
+    }
+
+    override fun updateCharacteristic(bleChar: BluetoothGattCharacteristic) {
+
+    }
+
+
 }

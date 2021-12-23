@@ -17,13 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.jamesjmtaylor.blecompose.BleViewModel
-import com.jamesjmtaylor.blecompose.ConnectionStatus
-import com.jamesjmtaylor.blecompose.NavActivity
-import com.jamesjmtaylor.blecompose.ViewState
+import com.jamesjmtaylor.blecompose.*
 import com.jamesjmtaylor.blecompose.scan.PermissionView
-import com.jamesjmtaylor.blecompose.scan.ScanResult
-import com.jamesjmtaylor.blecompose.scan.ScanView
+import com.jamesjmtaylor.blecompose.scan.ListItem
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 const val ConnectViewRoute = "ConnectView"
@@ -32,31 +28,28 @@ const val ConnectViewRoute = "ConnectView"
 @Composable
 fun ConnectView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
-    val viewState by vm.viewLiveData.observeAsState()
+    val viewState by vm.connectViewState.observeAsState()
     var checkPermissions by remember{ mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(8.dp)){
-            Button(onClick = {checkPermissions = true}) {
-                Text(if (viewState?.connectionStatus == ConnectionStatus.disconnected) "Connect"
-                    else "Disconnect")
+            Button(onClick = {
+                (context as NavActivity).bleService?.toggleConnect(vm.selectedDevice)
+            }) {
+                Text(when (viewState?.connectionStatus) {
+                    ConnectionStatus.disconnected-> "Connect"
+                    ConnectionStatus.disconnecting -> "Disconnecting"
+                    ConnectionStatus.connected -> "Disconnect"
+                    ConnectionStatus.connecting -> "Connecting"
+                    else -> "Connect"
+                })
             }
         }
-        viewState?.scanResults?.let { results -> LazyColumn { items(results) {
-            ScanResult(it, Modifier.clickable {
-                navController.navigate(ConnectViewRoute) { launchSingleTop = true }
+        viewState?.services?.let { services -> LazyColumn { items(services) {
+            ListItem(it.uuid.toString(), Modifier.clickable {
+                //TODO: Expand to show nested characteristics
             }.fillMaxWidth().padding(16.dp, 8.dp))
         }}
         }
-    }
-    if (viewState?.state?.isNotEmpty() == true) {
-        Toast.makeText(LocalContext.current, viewState?.state, Toast.LENGTH_LONG).show()
-    }
-    if (checkPermissions) {
-        checkPermissions = false
-        PermissionView(context,
-            {  (context as NavActivity).bleService?.toggleConnect() },
-            { Toast.makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }
-        )
     }
 }
 
@@ -65,9 +58,9 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
 @Composable
 fun PreviewConnectView() {
     val navController = rememberNavController()
-    val vs = MutableLiveData<ViewState>()
-    vs.value = ViewState(scanResults = SampleData.scanResults)
+    val vs = MutableLiveData<ConnectViewState>()
+    vs.value = ConnectViewState(ConnectionStatus.connected)
     BLEComposeTheme {
-        ConnectView(BleViewModel(vs),navController)
+        ConnectView(BleViewModel(connectViewMutableLiveData = vs),navController)
     }
 }

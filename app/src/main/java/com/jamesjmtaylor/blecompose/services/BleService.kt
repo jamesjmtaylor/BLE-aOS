@@ -34,7 +34,7 @@ interface GattListener {
 }
 
 //ViewModelStoreOwner allows Service to be custodian of the VM, cleaning it up once no longer needed
-class BleService : Service(),  ViewModelStoreOwner {
+class BleService : Service() {
     var scanListener: ScanListener? = null
     var gattListener: GattListener? = null
     private var bluetoothLeScanner: BluetoothLeScanner? = null
@@ -90,11 +90,6 @@ class BleService : Service(),  ViewModelStoreOwner {
         startForeground(FOREGROUND_NOTIFICATION_ID, notification)
     }
 
-    private val appViewModelStore: ViewModelStore by lazy { ViewModelStore() }
-    override fun getViewModelStore(): ViewModelStore {
-        return appViewModelStore
-    }
-
     fun toggleScan() {
         if (scanListener?.getScanning() == false) {
             bluetoothLeScanner?.startScan(scanListener?.scanCallback)
@@ -106,7 +101,7 @@ class BleService : Service(),  ViewModelStoreOwner {
     }
 
     fun toggleConnect(device: BluetoothDevice?) {
-        if (gattListener?.getConnected() == ConnectionStatus.connected) {
+        if (gattListener?.getConnected() != ConnectionStatus.connected) {
             bluetoothGatt = device?.connectGatt(this,false, object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(gatt: BluetoothGatt?,status: Int,newState: Int) {
                     when (val connectionStatus = intToConnectionStatus(newState)) {

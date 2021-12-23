@@ -18,6 +18,7 @@ import com.jamesjmtaylor.blecompose.scan.ScanView
 import com.jamesjmtaylor.blecompose.scan.ScanViewRoute
 import com.jamesjmtaylor.blecompose.services.ScanListener
 import com.jamesjmtaylor.blecompose.services.BleService
+import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 //Show name, then all details without connecting.  Back top left, Connect top right
@@ -28,6 +29,7 @@ class NavActivity : ComponentActivity() {
         override fun onServiceConnected(className: ComponentName?, service: IBinder?) {
             bleService = (service as BleService.LocalBinder).getService()
             bleService?.scanListener = bleViewModel as ScanListener
+            bleService?.gattListener = bleViewModel as GattListener
         }
         override fun onServiceDisconnected(p0: ComponentName?) {}
     }
