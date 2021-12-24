@@ -24,6 +24,7 @@ import com.jamesjmtaylor.blecompose.NavActivity
 import com.jamesjmtaylor.blecompose.ScanViewState
 import com.jamesjmtaylor.blecompose.connect.ConnectViewRoute
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
+import timber.log.Timber
 
 const val ScanViewRoute = "ScanView"
 @Composable
@@ -39,14 +40,16 @@ fun ScanView(vm: BleViewModel, navController: NavController) {
     //Box: arranges children relatively (can overlap)
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(8.dp)){
-            Button(onClick = {checkPermissions = true}) {
+            Button(onClick = {
+                checkPermissions = true
+            }) {
                 Text(if (viewState?.scanning == true) "Stop Scan" else "Scan")
             }
         }
         viewState?.scanResults?.let { results -> LazyColumn { items(results) {
             ListItem(it.device?.name ?: it.device?.address ?: "No name provided",
                 Modifier.clickable {
-                vm.selectedDevice = it.device
+                vm.selectedDevice = it
                 navController.navigate(ConnectViewRoute) { launchSingleTop = true }
             }.fillMaxWidth().padding(16.dp, 8.dp))
         }}}
@@ -63,13 +66,6 @@ fun ScanView(vm: BleViewModel, navController: NavController) {
     }
 }
 
-@Composable
-fun ListItem(name: String, modifier: Modifier) {
-    Text(text = name,
-        fontSize = 16.sp,
-        color= MaterialTheme.colors.secondaryVariant,
-        modifier = modifier)
-}
 
 @Preview(showBackground = true, name = "Light Mode")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true, name = "Dark Mode")

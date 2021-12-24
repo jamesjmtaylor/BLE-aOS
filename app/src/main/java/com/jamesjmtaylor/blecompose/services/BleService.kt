@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.jamesjmtaylor.blecompose.ConnectionStatus
 import com.jamesjmtaylor.blecompose.R
 import com.jamesjmtaylor.blecompose.NavActivity
+import timber.log.Timber
 import java.util.*
 
 //NOTE: Based on AdvertiserService in Bluetooth Advertisements Kotlin
@@ -101,25 +102,37 @@ class BleService : Service() {
     }
 
     fun toggleConnect(device: BluetoothDevice?) {
+        Timber.d("toggleConnect() device: ${device?.address?.toString()}; status: ${gattListener?.getConnected()?.name}")
+
         if (gattListener?.getConnected() != ConnectionStatus.connected) {
+            gattListener?.setConnected(ConnectionStatus.connecting)
             bluetoothGatt = device?.connectGatt(this,false, object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(gatt: BluetoothGatt?,status: Int,newState: Int) {
+                    Timber.d("toggleConnect() onConnectionStateChange")
                     when (val connectionStatus = intToConnectionStatus(newState)) {
                         ConnectionStatus.connected -> bluetoothGatt?.discoverServices()
                         else -> gattListener?.setConnected(connectionStatus)
                     }
                 }
                 override fun onServiceChanged(gatt: BluetoothGatt) {
+                    Timber.d("toggleConnect() onServiceChanged")
                     gatt.services?.let { gattListener?.updateServices(it.toList())}
                 }
                 override fun onCharacteristicChanged(gatt: BluetoothGatt?,characteristic: BluetoothGattCharacteristic?) {
+                    Timber.d("toggleConnect() onCharacteristicChanged")
                     characteristic?.let { gattListener?.updateCharacteristic(it) }
                 }
                 override fun onCharacteristicRead(gatt: BluetoothGatt?,characteristic: BluetoothGattCharacteristic?, status: Int) {
+                    Timber.d("toggleConnect() onCharacteristicRead")
                     characteristic?.let { gattListener?.updateCharacteristic(it) }
+                }
+                override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                    Timber.d("toggleConnect() onServicesDiscovered")
+                    gatt?.services?.let { gattListener?.updateServices(it) }
                 }
             })
         } else {
+            gattListener?.setConnected(ConnectionStatus.disconnecting)
             bluetoothGatt?.disconnect()
         }
     }

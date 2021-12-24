@@ -1,6 +1,10 @@
 ﻿import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY
+import android.bluetooth.BluetoothGattService.SERVICE_TYPE_SECONDARY
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
+import java.util.*
 
 object SampleData {
 
@@ -10,5 +14,11 @@ object SampleData {
         ScanResult(null, 0, 1,2,3,4,5,6, null, 1L ),
         ScanResult(null, 0, 1,2,3,4,5,6, null, 1L ),
         ScanResult(null, 0, 1,2,3,4,5,6, null, 1L )
+    )
+
+    val discoveredServices : List<BluetoothGattService> = listOf(
+        BluetoothGattService(UUID.randomUUID(),SERVICE_TYPE_PRIMARY),
+        BluetoothGattService(UUID.randomUUID(), SERVICE_TYPE_SECONDARY),
+        BluetoothGattService(UUID.randomUUID(), SERVICE_TYPE_SECONDARY)
     )
 }

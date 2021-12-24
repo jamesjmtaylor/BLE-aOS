@@ -20,6 +20,7 @@ import com.jamesjmtaylor.blecompose.services.ScanListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
+import timber.log.Timber
 
 //Show name, then all details without connecting.  Back top left, Connect top right
 class NavActivity : ComponentActivity() {
@@ -36,6 +37,7 @@ class NavActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        Timber.d("onStart() NavActivity")
         Intent(this, BleService::class.java).also { intent ->
             bindService(intent,connection, Context.BIND_AUTO_CREATE)
         }
@@ -46,7 +48,7 @@ class NavActivity : ComponentActivity() {
         bleViewModel = ViewModelProvider(this).get(BleViewModel::class.java)
         bleViewModel?.let { vm -> setContent { BLEComposeTheme {
             val navController = rememberNavController()
-            val navHost = NavHost(navController, ScanViewRoute){
+            NavHost(navController, ScanViewRoute){
                 composable(ScanViewRoute) { ScanView(vm,navController) }
                 composable(ConnectViewRoute) { ConnectView(vm,navController)}
             }

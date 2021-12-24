@@ -21,7 +21,7 @@ data class ConnectViewState(var connectionStatus: ConnectionStatus = ConnectionS
 class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanViewState> = MutableLiveData(),
                    private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData()):
     ViewModel(), ScanListener, GattListener {
-    var selectedDevice: BluetoothDevice? = null
+    var selectedDevice: ScanResult? = null
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
     val scanViewLiveData: LiveData<ScanViewState> get() = scanViewMutableLiveData
     val connectViewState: LiveData<ConnectViewState> get() = connectViewMutableLiveData
@@ -45,7 +45,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
                 SCAN_FAILED_FEATURE_UNSUPPORTED -> callbackTypeString = "Ble not supported"
                 SCAN_FAILED_INTERNAL_ERROR -> callbackTypeString = "Ble internal error"
             }
-            scanViewMutableLiveData.value  = ScanViewState(true, scanResults)
+            scanViewMutableLiveData.value  = ScanViewState(true, scanResults, callbackTypeString)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
@@ -62,7 +62,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     }
 
     override fun setConnected(status: ConnectionStatus) {
-        connectViewMutableLiveData.value = ConnectViewState(status)
+        connectViewMutableLiveData.postValue(ConnectViewState(status))
     }
 
     override fun getConnected(): ConnectionStatus {
@@ -70,7 +70,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     }
 
     override fun updateServices(bleServices: List<BluetoothGattService>) {
-        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, bleServices)
+        connectViewMutableLiveData.postValue(ConnectViewState(ConnectionStatus.connected, bleServices))
     }
 
     override fun updateCharacteristic(bleChar: BluetoothGattCharacteristic) {
