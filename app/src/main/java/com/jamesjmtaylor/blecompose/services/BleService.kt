@@ -1,6 +1,7 @@
 ﻿package com.jamesjmtaylor.blecompose.services
 
 import android.app.*
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -73,7 +74,7 @@ class BleService : Service() {
 
     private fun launchForegroundNotification() {
         val notificationIntent = Intent(this, NavActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, FLAG_IMMUTABLE)
 
         val bleNotificationChannel = NotificationChannel(
             BLE_NOTIFICATION_CHANNEL_ID, "BLE",

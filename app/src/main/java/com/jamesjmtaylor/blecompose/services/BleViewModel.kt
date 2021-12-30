@@ -22,6 +22,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
                    private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData()):
     ViewModel(), ScanListener, GattListener {
     var selectedDevice: ScanResult? = null
+    var selectedService: BluetoothGattService? = null
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
     val scanViewLiveData: LiveData<ScanViewState> get() = scanViewMutableLiveData
     val connectViewState: LiveData<ConnectViewState> get() = connectViewMutableLiveData
@@ -36,6 +37,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     override val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val tempList = scanResults.toMutableList()
+            tempList.removeIf { r -> r.device.name.isNullOrEmpty() }
             tempList.removeIf { r -> r.device.address == result?.device?.address }
             result?.let { tempList.add(result) }
             scanResults = tempList.toList()

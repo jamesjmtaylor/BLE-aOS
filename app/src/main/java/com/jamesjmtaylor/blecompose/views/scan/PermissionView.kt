@@ -1,4 +1,4 @@
-package com.jamesjmtaylor.blecompose.scan
+package com.jamesjmtaylor.blecompose.views.scan
 
 import android.Manifest
 import android.content.Context

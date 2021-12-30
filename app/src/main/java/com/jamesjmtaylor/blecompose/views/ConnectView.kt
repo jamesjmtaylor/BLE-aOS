@@ -1,4 +1,4 @@
-﻿package com.jamesjmtaylor.blecompose.connect
+﻿package com.jamesjmtaylor.blecompose.views
 
 import android.content.res.Configuration
 import android.widget.Toast
@@ -20,11 +20,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.jamesjmtaylor.blecompose.*
-import com.jamesjmtaylor.blecompose.scan.PermissionView
-import com.jamesjmtaylor.blecompose.scan.ListItem
-import com.jamesjmtaylor.blecompose.scan.LoadingView
+import com.jamesjmtaylor.blecompose.models.GattService
+import com.jamesjmtaylor.blecompose.views.scan.ListItem
+import com.jamesjmtaylor.blecompose.views.scan.LoadingView
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
-import timber.log.Timber
 
 const val ConnectViewRoute = "ConnectView"
 
@@ -64,8 +63,11 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
             item { Text("Secondary Phy: ${vm.selectedDevice?.secondaryPhy}", Modifier.padding(16.dp,8.dp), color= MaterialTheme.colors.onBackground) }
             item { Text("Discovered Services", Modifier.padding(16.dp,8.dp), MaterialTheme.colors.primary, 24.sp) }
             viewState?.services?.let { services -> items(services) {
-                ListItem(it.uuid.toString(), Modifier.clickable {
-                    //TODO: Expand to show nested characteristics
+                ListItem(
+                    GattService.getService(it.uuid.toString())?.name ?: it.uuid.toString(),
+                    Modifier.clickable {
+                        vm.selectedService = it
+                        navController.navigate(ServiceCharacteristicsViewRoute) { launchSingleTop = true }
                 }.fillMaxWidth().padding(16.dp, 8.dp))
             }}
         }
