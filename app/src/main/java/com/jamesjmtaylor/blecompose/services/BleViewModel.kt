@@ -22,8 +22,10 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
                    private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData()):
     ViewModel(), ScanListener, GattListener {
     var selectedDevice: ScanResult? = null
-    var selectedService: BluetoothGattService? = null
+    private var selectedService: BluetoothGattService? = null
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
+    private var services = listOf<BluetoothGattService>() //immutable list is required, otherwise LiveData cannot tell that the object changed
+    private var characterics = listOf<BluetoothGattCharacteristic>() //immutable list is required, otherwise LiveData cannot tell that the object changed
     val scanViewLiveData: LiveData<ScanViewState> get() = scanViewMutableLiveData
     val connectViewState: LiveData<ConnectViewState> get() = connectViewMutableLiveData
 
@@ -37,17 +39,10 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     override val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val tempList = scanResults.toMutableList()
-            tempList.removeIf { r -> r.device.name.isNullOrEmpty() }
-            tempList.removeIf { r -> r.device.address == result?.device?.address }
-            result?.let { tempList.add(result) }
+            tempList.removeIf { r -> r.device.address == result?.device?.address } //remove old scan results
+            result?.let { if (it.device.name?.isBlank() == false) tempList.add(result) } //remove scan results without device names
             scanResults = tempList.toList()
-            var callbackTypeString = ""
-            when (callbackType){
-                SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> callbackTypeString = "Registration failed"
-                SCAN_FAILED_FEATURE_UNSUPPORTED -> callbackTypeString = "Ble not supported"
-                SCAN_FAILED_INTERNAL_ERROR -> callbackTypeString = "Ble internal error"
-            }
-            scanViewMutableLiveData.value  = ScanViewState(true, scanResults, callbackTypeString)
+            scanViewMutableLiveData.value  = ScanViewState(true, scanResults)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
@@ -72,12 +67,21 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     }
 
     override fun updateServices(bleServices: List<BluetoothGattService>) {
+        services = bleServices
         connectViewMutableLiveData.postValue(ConnectViewState(ConnectionStatus.connected, bleServices))
     }
 
     override fun updateCharacteristic(bleChar: BluetoothGattCharacteristic) {
-
+        val tempList = characterics.toMutableList()
+        tempList.removeIf { c -> c.uuid == bleChar.uuid } //Remove old characteristic data
+        tempList.add(bleChar)
+        characterics = tempList.toList()
+        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, services, characterics)
     }
 
-
+    fun setSelectedService(service: BluetoothGattService){
+        this.selectedService = service
+        this.characterics = service.characteristics
+        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, services, characterics)
+    }
 }

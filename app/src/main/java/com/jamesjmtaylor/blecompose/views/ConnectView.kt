@@ -66,7 +66,7 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
                 ListItem(
                     GattService.getService(it.uuid.toString())?.name ?: it.uuid.toString(),
                     Modifier.clickable {
-                        vm.selectedService = it
+                        vm.setSelectedService(it)
                         navController.navigate(ServiceCharacteristicsViewRoute) { launchSingleTop = true }
                 }.fillMaxWidth().padding(16.dp, 8.dp))
             }}

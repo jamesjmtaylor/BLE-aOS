@@ -36,8 +36,6 @@ const val ServiceCharacteristicsViewRoute = "ServiceCharacteristicsView"
 fun ServiceCharacteristicsView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
     val viewState by vm.connectViewState.observeAsState()
-    val name = vm.selectedService
-
 
     LazyColumn(Modifier.fillMaxSize()) {
         item { Text("Service Characteristics", Modifier.padding(16.dp,8.dp), MaterialTheme.colors.primary, 24.sp) }
