@@ -1,4 +1,7 @@
 ﻿import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattCharacteristic.PERMISSION_READ
+import android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY
 import android.bluetooth.BluetoothGattService.SERVICE_TYPE_SECONDARY
@@ -20,5 +23,11 @@ object SampleData {
         BluetoothGattService(UUID.randomUUID(),SERVICE_TYPE_PRIMARY),
         BluetoothGattService(UUID.randomUUID(), SERVICE_TYPE_SECONDARY),
         BluetoothGattService(UUID.randomUUID(), SERVICE_TYPE_SECONDARY)
+    )
+
+    val characteristics : List<BluetoothGattCharacteristic> = listOf(
+        BluetoothGattCharacteristic(UUID.randomUUID(),PROPERTY_READ,PERMISSION_READ),
+        BluetoothGattCharacteristic(UUID.randomUUID(),PROPERTY_READ,PERMISSION_READ),
+        BluetoothGattCharacteristic(UUID.randomUUID(),PROPERTY_READ,PERMISSION_READ)
     )
 }

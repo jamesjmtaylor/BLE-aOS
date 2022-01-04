@@ -3,7 +3,7 @@
 //NOTE: For Fitness Machine, FitnessMachineFeatures is the only characteristic that is read (all others are notify)
 //NOTE: Only the first 8 bytes of the UUID matter.  All others are masked.
 enum class GattCharacteristic(val uuid: String, val notify: Boolean){
-    FitnessMachineStatus("00002ada-0000-1000-8000-00805f9b34fb", true), //See MachineStatus enum class for all possible states
+    MachineStatus("00002ada-0000-1000-8000-00805f9b34fb", true), //See MachineStatus enum class for all possible states
     IndoorBikeData("00002ad2-0000-1000-8000-00805f9b34fb", true), //See IndoorBikeData enum class for all possible flags
     TrainingStatus("00002ad3-0000-1000-8000-00805f9b34fb", true), //See TraingStatus enum class for all possible states
     TreadmillData("00002acd-0000-1000-8000-00805f9b34fb", true), //See TreadmillData enum class for all possible flags

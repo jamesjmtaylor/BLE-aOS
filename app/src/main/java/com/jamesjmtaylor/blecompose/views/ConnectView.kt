@@ -21,8 +21,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.jamesjmtaylor.blecompose.*
 import com.jamesjmtaylor.blecompose.models.GattService
-import com.jamesjmtaylor.blecompose.views.scan.ListItem
-import com.jamesjmtaylor.blecompose.views.scan.LoadingView
+import com.jamesjmtaylor.blecompose.views.componentviews.ListItem
+import com.jamesjmtaylor.blecompose.views.componentviews.Spinner
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 const val ConnectViewRoute = "ConnectView"
@@ -33,9 +33,8 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
     val viewState by vm.connectViewState.observeAsState()
     val name = vm.selectedDevice?.device?.name ?: vm.selectedDevice?.device?.address ?: "No name assigned"
-    var checkPermissions by remember{ mutableStateOf(false) }
     if (viewState?.connectionStatus == ConnectionStatus.connecting
-        || viewState?.connectionStatus == ConnectionStatus.disconnecting ) LoadingView()
+        || viewState?.connectionStatus == ConnectionStatus.disconnecting ) Spinner()
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(8.dp)){
             Button(onClick = {

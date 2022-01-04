@@ -1,4 +1,4 @@
-﻿package com.jamesjmtaylor.blecompose.views.scan
+﻿package com.jamesjmtaylor.blecompose.views.componentviews
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 @Composable
-fun LoadingView() {
+fun Spinner() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -28,6 +28,6 @@ fun LoadingView() {
 @Composable
 fun PreviewLoading() {
     BLEComposeTheme {
-        LoadingView()
+        Spinner()
     }
 }

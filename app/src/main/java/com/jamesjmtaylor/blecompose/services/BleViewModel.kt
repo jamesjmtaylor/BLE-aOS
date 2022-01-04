@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.services.ScanListener
+import timber.log.Timber
 
 enum class ConnectionStatus { connecting, disconnecting, connected, disconnected }
 data class ScanViewState(val scanning: Boolean = false,
@@ -16,11 +17,13 @@ data class ScanViewState(val scanning: Boolean = false,
 data class ConnectViewState(var connectionStatus: ConnectionStatus = ConnectionStatus.disconnected,
                             val services: List<BluetoothGattService> = emptyList(),
                             val characteristics: List<BluetoothGattCharacteristic> = emptyList())
+data class CharacteristicViewState(var characteristic: BluetoothGattCharacteristic)
 
 //Constructor injection of liveData for testing & compose preview purposes
 class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanViewState> = MutableLiveData(),
-                   private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData()):
-    ViewModel(), ScanListener, GattListener {
+                   private val connectViewMutableLiveData : MutableLiveData<ConnectViewState> = MutableLiveData(),
+                   private val characteristicMutableLiveData : MutableLiveData<CharacteristicViewState> = MutableLiveData()
+): ViewModel(), ScanListener, GattListener {
     var selectedDevice: ScanResult? = null
     private var selectedService: BluetoothGattService? = null
     private var scanResults = listOf<ScanResult>() //immutable list is required, otherwise LiveData cannot tell that the object changed
@@ -28,9 +31,10 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
     private var characterics = listOf<BluetoothGattCharacteristic>() //immutable list is required, otherwise LiveData cannot tell that the object changed
     val scanViewLiveData: LiveData<ScanViewState> get() = scanViewMutableLiveData
     val connectViewState: LiveData<ConnectViewState> get() = connectViewMutableLiveData
+    val characteristicViewState: LiveData<CharacteristicViewState> get() = characteristicMutableLiveData
 
     override fun setScanning(scanning: Boolean) {
-        scanViewMutableLiveData.value = ScanViewState(scanning, scanResults)
+        scanViewMutableLiveData.postValue(ScanViewState(scanning, scanResults))
     }
     override fun getScanning() : Boolean {
         return scanViewLiveData.value?.scanning ?: false
@@ -42,7 +46,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
             tempList.removeIf { r -> r.device.address == result?.device?.address } //remove old scan results
             result?.let { if (it.device.name?.isBlank() == false) tempList.add(result) } //remove scan results without device names
             scanResults = tempList.toList()
-            scanViewMutableLiveData.value  = ScanViewState(true, scanResults)
+            scanViewMutableLiveData.postValue(ScanViewState(true, scanResults))
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
@@ -50,11 +54,11 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
             results?.map { tempList.removeIf { r -> r.device.address == it.device?.address } }
             results?.let { tempList.addAll(results) }
             scanResults = tempList.toList()
-            scanViewMutableLiveData.value = ScanViewState(true, scanResults)
+            scanViewMutableLiveData.postValue(ScanViewState(true, scanResults))
         }
 
         override fun onScanFailed(errorCode: Int) {
-            scanViewMutableLiveData.value = ScanViewState(false,scanResults,"onScanFailed errorCode: $errorCode")
+            scanViewMutableLiveData.postValue(ScanViewState(false,scanResults,"onScanFailed errorCode: $errorCode"))
         }
     }
 
@@ -76,12 +80,16 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
         tempList.removeIf { c -> c.uuid == bleChar.uuid } //Remove old characteristic data
         tempList.add(bleChar)
         characterics = tempList.toList()
-        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, services, characterics)
+        connectViewMutableLiveData.postValue(ConnectViewState(ConnectionStatus.connected, services, characterics))
+        val sb = StringBuilder()
+        for (byte in bleChar.value) sb.append(byte.toString()).append(",")
+        sb.removeSuffix(",")
+        Timber.d("updateCharacteristic: ${bleChar.uuid}; byte values: $sb")
     }
 
     fun setSelectedService(service: BluetoothGattService){
         this.selectedService = service
         this.characterics = service.characteristics
-        connectViewMutableLiveData.value = ConnectViewState(ConnectionStatus.connected, services, characterics)
+        connectViewMutableLiveData.postValue(ConnectViewState(ConnectionStatus.connected, services, characterics))
     }
 }

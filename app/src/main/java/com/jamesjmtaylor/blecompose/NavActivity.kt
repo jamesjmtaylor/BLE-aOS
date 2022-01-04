@@ -12,16 +12,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.jamesjmtaylor.blecompose.views.ConnectView
-import com.jamesjmtaylor.blecompose.views.ConnectViewRoute
-import com.jamesjmtaylor.blecompose.views.scan.ScanView
-import com.jamesjmtaylor.blecompose.views.scan.ScanViewRoute
+import com.jamesjmtaylor.blecompose.views.componentviews.ScanView
+import com.jamesjmtaylor.blecompose.views.componentviews.ScanViewRoute
 import com.jamesjmtaylor.blecompose.services.ScanListener
 import com.jamesjmtaylor.blecompose.services.BleService
 import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
-import com.jamesjmtaylor.blecompose.views.ServiceCharacteristicsView
-import com.jamesjmtaylor.blecompose.views.ServiceCharacteristicsViewRoute
+import com.jamesjmtaylor.blecompose.views.*
 import timber.log.Timber
 
 //Show name, then all details without connecting.  Back top left, Connect top right

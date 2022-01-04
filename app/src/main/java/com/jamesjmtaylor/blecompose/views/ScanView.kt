@@ -1,4 +1,4 @@
-﻿package com.jamesjmtaylor.blecompose.views.scan
+﻿package com.jamesjmtaylor.blecompose.views.componentviews
 
 import android.content.res.Configuration
 import android.widget.Toast
@@ -29,7 +29,7 @@ fun ScanView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
     val viewState by vm.scanViewLiveData.observeAsState()
     var checkPermissions by remember{ mutableStateOf(false) }
-    if (viewState?.scanning == true) LoadingView()
+    if (viewState?.scanning == true) Spinner()
     //Need a parent container to to keep children (scanButton & scanResults) from overlapping.
     // There are 3 choices:
     //Row: arranges children horizontally
@@ -56,7 +56,7 @@ fun ScanView(vm: BleViewModel, navController: NavController) {
     }
     if (checkPermissions) {
         checkPermissions = false
-        PermissionView(context,
+        PermissionsRequest(context,
             {  (context as NavActivity).bleService?.toggleScan() },
             { Toast.makeText(context, "Cannot scan, permission denied", Toast.LENGTH_LONG).show() }
         )

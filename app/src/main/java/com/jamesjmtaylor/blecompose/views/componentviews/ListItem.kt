@@ -1,4 +1,4 @@
-﻿package com.jamesjmtaylor.blecompose.views.scan
+﻿package com.jamesjmtaylor.blecompose.views.componentviews
 
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text

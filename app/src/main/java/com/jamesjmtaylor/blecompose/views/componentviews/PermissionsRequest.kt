@@ -1,4 +1,4 @@
-package com.jamesjmtaylor.blecompose.views.scan
+package com.jamesjmtaylor.blecompose.views.componentviews
 
 import android.Manifest
 import android.content.Context
@@ -14,7 +14,7 @@ import timber.log.Timber
 
 
 @Composable
-fun PermissionView(context: Context, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
+fun PermissionsRequest(context: Context, onPermissionGranted: () -> Unit, onPermissionDenied: () -> Unit) {
     val permissions = mutableListOf(
         Manifest.permission.BLUETOOTH,
         Manifest.permission.ACCESS_COARSE_LOCATION,
