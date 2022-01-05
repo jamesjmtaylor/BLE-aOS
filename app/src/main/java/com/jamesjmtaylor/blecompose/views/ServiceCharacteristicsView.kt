@@ -26,10 +26,7 @@ import com.jamesjmtaylor.blecompose.ConnectViewState
 import com.jamesjmtaylor.blecompose.ConnectionStatus
 import com.jamesjmtaylor.blecompose.NavActivity
 import com.jamesjmtaylor.blecompose.models.GattCharacteristic
-import com.jamesjmtaylor.blecompose.models.characteristics.IndoorBikeData
-import com.jamesjmtaylor.blecompose.models.characteristics.MachineStatus
-import com.jamesjmtaylor.blecompose.models.characteristics.TrainingStatus
-import com.jamesjmtaylor.blecompose.models.characteristics.TreadmillData
+import com.jamesjmtaylor.blecompose.models.characteristics.*
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 import com.jamesjmtaylor.blecompose.views.componentviews.ListItem
 import java.util.*
@@ -47,36 +44,29 @@ fun ServiceCharacteristicsView(vm: BleViewModel, navController: NavController) {
     var expandedCharacteristic by remember{ mutableStateOf<UUID?>(null) }
     LazyColumn(Modifier.fillMaxSize()) {
         item { Text("Service Characteristics", Modifier.padding(16.dp,8.dp), MaterialTheme.colors.primary, 24.sp) }
-        connectViewState?.characteristics?.let { characteristics -> items(characteristics) { characteristic ->
-            ListItem(
-                GattCharacteristic.getCharacteristic(characteristic.uuid.toString())?.name ?: characteristic.uuid.toString(),
-                Modifier
-                    .clickable {
-                        //TODO: Finish work on expanding card by using https://proandroiddev.com/expandable-lists-in-jetpack-compose-b0b78c767b4
-                        expandedCharacteristic =
-                            if (characteristic.uuid == expandedCharacteristic) null
-                            else characteristic.uuid
-                        (context as NavActivity).bleService?.setCharacteristicNotification(
-                            characteristic,
-                            characteristic.uuid == expandedCharacteristic
-                        )
-                    }
-                    .fillMaxWidth()
-                    .padding(16.dp, 8.dp)
-            )
-        }}
-        connectViewState?.characteristics?.firstOrNull{it.uuid == expandedCharacteristic}?.let {
-            if (it.value == null) return@let
-            val encodedData : String = when (GattCharacteristic.getCharacteristic(it.uuid.toString())) {
-                GattCharacteristic.MachineStatus -> MachineStatus.getEnum(it.value.first()).name
-                GattCharacteristic.IndoorBikeData -> IndoorBikeData.convertBytesToDataString(it.value)
-                GattCharacteristic.TrainingStatus -> TrainingStatus.getEnum(it.value.first()).name
-                GattCharacteristic.TreadmillData -> TreadmillData.convertBytesToDataString(it.value)
-                else -> it.value.toString()
+        connectViewState?.characteristics?.let { characteristics ->
+            items(characteristics) { characteristic ->
+                ListItem(
+                    GattCharacteristic.getCharacteristic(characteristic.uuid.toString())?.name ?: characteristic.uuid.toString(),
+                    Modifier
+                        .clickable {
+                            //TODO: Finish work on expanding card by using https://proandroiddev.com/expandable-lists-in-jetpack-compose-b0b78c767b4
+                            expandedCharacteristic =
+                                if (characteristic.uuid == expandedCharacteristic) null
+                                else characteristic.uuid
+                            (context as NavActivity).bleService?.setCharacteristicNotification(
+                                characteristic,
+                                characteristic.uuid == expandedCharacteristic
+                            )
+                        }
+                        .fillMaxWidth()
+                        .padding(16.dp, 8.dp)
+                )
             }
-            Toast.makeText(context,encodedData,Toast.LENGTH_SHORT).show()
+            characteristicViewState?.let {
+                Toast.makeText(context,it,Toast.LENGTH_SHORT).show()
+            }
         }
-
     }
 }
 

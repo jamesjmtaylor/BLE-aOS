@@ -1,6 +1,6 @@
 ﻿package com.jamesjmtaylor.blecompose.models.characteristics
 
-import com.jamesjmtaylor.blecompose.utils.asUnsignedToInt
+import com.jamesjmtaylor.blecompose.utils.fromUnsignedBytesToInt
 import com.jamesjmtaylor.blecompose.utils.toBitSet
 import com.jamesjmtaylor.blecompose.utils.toInt
 import timber.log.Timber
@@ -48,7 +48,7 @@ enum class IndoorBikeData(val flagBitNumber: Int, val byteSize: Int, val signed:
                 val dataEndByteIndex = currentByteIndex + flag.byteSize
                 val dataBytes = bytes.copyOfRange(currentByteIndex, dataEndByteIndex)
                 currentByteIndex = dataEndByteIndex
-                val int = if (!flag.signed) dataBytes.asUnsignedToInt() else dataBytes.toInt()
+                val int = if (!flag.signed) dataBytes.fromUnsignedBytesToInt() else dataBytes.toInt()
                 val doubleValue = (int * flag.resolution * 10).roundToInt().toDouble() / 10.0 //Removes rounding errors
                 sb.append("${flag.name}: $doubleValue ${flag.units} \n")
             }
