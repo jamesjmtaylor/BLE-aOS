@@ -10,7 +10,7 @@ enum class TreadmillData(val flagBitNumber: Int, val byteSize: Int, val signed: 
     ExceedsAttMtuSize(0,0,false, "",0.0),
     InstantaneousSpeedPresent(0,2,false, "kph",0.01),
     AverageSpeedPresent(1,2,false, "kph",0.01),
-    TotalDistancePresent(2,2,false, "meters", 1.0),
+    TotalDistancePresent(2,3,false, "meters", 1.0),
     InclinePresent(3, 2,true, "%", 0.1),
     RampAnglePresent(3, 2,true, "º", 0.1),
     PositiveElevationGainPresent (4, 2,false,"meters", 0.1),
@@ -27,20 +27,19 @@ enum class TreadmillData(val flagBitNumber: Int, val byteSize: Int, val signed: 
     ForceOnBeltPresent(12,2,true,"netwons", 1.0),
     PowerOutputPresent(12,2,true,"watts", 1.0);
     companion object {
-        private fun getEnum(bitNumber: Int): TreadmillData {
-            return values().first { it.flagBitNumber == bitNumber }
+        private fun getEnums(bitNumber: Int): List<TreadmillData> {
+            return values().filter { it.flagBitNumber == bitNumber }
         }
-        private fun convertBytesToFlags(bytes: ByteArray): List<TreadmillData> {
+        fun convertBytesToFlags(bytes: ByteArray): List<TreadmillData> {
             val flags = mutableListOf<TreadmillData>()
             val bitSet = bytes.copyOfRange(0,2).toBitSet()
             if (!bitSet.get(0)) flags.add(InstantaneousSpeedPresent)
             for (i in 0 until bitSet.size()){//TODO: Does not handle if bit 0 is true (Exceeds MTU size)
-                Timber.i("Bitset bit $i = ${bitSet.get(i)}")
-                if (bitSet.get(i)) flags.add(getEnum(i))
+                if (bitSet.get(i)) flags.addAll(getEnums(i))
             }
             return flags.toList()
         }
-        @ExperimentalUnsignedTypes
+
         fun convertBytesToDataString(bytes: ByteArray): String {
             val flags = convertBytesToFlags(bytes)
             var currentByteIndex = 2 //First two bytes are used for flags.

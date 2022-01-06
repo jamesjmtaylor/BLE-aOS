@@ -32,7 +32,6 @@ enum class IndoorBikeData(val flagBitNumber: Int, val byteSize: Int, val signed:
             val bitSet = bytes.copyOfRange(0,2).toBitSet()
             if (!bitSet.get(0)) flags.add(InstantaneousSpeedPresent)
             for (i in 0 until bitSet.size()){//TODO: Does not handle if bit 0 is true (Exceeds MTU size)
-                Timber.i("Bitset bit $i = ${bitSet.get(i)}")
                 if (bitSet.get(i)) flags.addAll(getFlagsForBitIndex(i))
             }
             return flags.toList()
