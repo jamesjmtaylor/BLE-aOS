@@ -95,7 +95,7 @@ class BleViewModel(private val scanViewMutableLiveData : MutableLiveData<ScanVie
             GattCharacteristic.IndoorBikeData -> IndoorBikeData.convertBytesToDataString(it.value)
             GattCharacteristic.TrainingStatus -> TrainingStatus.getEnum(it.value.first()).name
             GattCharacteristic.TreadmillData -> TreadmillData.convertBytesToDataString(it.value)
-            GattCharacteristic.CscMeasurement -> CscMeasurement.convertBytesToDataString(it.value)
+//            GattCharacteristic.CscMeasurement -> CscMeasurement.convertBytesToDataString(it.value)
             else -> it.value.toString()
         }
     }

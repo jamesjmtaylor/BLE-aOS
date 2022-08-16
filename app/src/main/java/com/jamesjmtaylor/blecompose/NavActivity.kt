@@ -22,8 +22,10 @@ import com.jamesjmtaylor.blecompose.views.*
 import timber.log.Timber
 
 //Show name, then all details without connecting.  Back top left, Connect top right
+@OptIn(ExperimentalUnsignedTypes::class)
 class NavActivity : ComponentActivity() {
     var bleService: BleService? = null
+
     private var bleViewModel : BleViewModel? = null
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName?, service: IBinder?) {
@@ -42,6 +44,7 @@ class NavActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalUnsignedTypes::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         bleViewModel = ViewModelProvider(this).get(BleViewModel::class.java)

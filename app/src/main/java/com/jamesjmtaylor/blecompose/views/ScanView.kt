@@ -24,6 +24,7 @@ import com.jamesjmtaylor.blecompose.views.ConnectViewRoute
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 
 const val ScanViewRoute = "ScanView"
+@OptIn(ExperimentalUnsignedTypes::class)
 @Composable
 fun ScanView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
