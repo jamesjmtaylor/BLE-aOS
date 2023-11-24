@@ -1,6 +1,6 @@
 ﻿package com.jamesjmtaylor.blecompose.services
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -19,13 +19,9 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Binder
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import androidx.core.app.ActivityCompat
-import com.jamesjmtaylor.blecompose.ConnectionStatus
 import com.jamesjmtaylor.blecompose.NavActivity
 import com.jamesjmtaylor.blecompose.R
 import timber.log.Timber
@@ -50,7 +46,7 @@ interface GattListener {
     fun updateServices(bleServices: List<BluetoothGattService>)
 }
 
-//ViewModelStoreOwner allows Service to be custodian of the VM, cleaning it up once no longer needed
+@SuppressLint("MissingPermission")
 class BleService : Service() {
     var scanListener: ScanListener? = null
     var gattListener: GattListener? = null
@@ -110,127 +106,95 @@ class BleService : Service() {
     }
 
     fun toggleScan() {
-        checkPermission {
-            if (scanListener?.getScanning() == false) {
-                bluetoothLeScanner?.startScan(scanListener?.scanCallback)
-                scanListener?.setScanning(true)
-            } else {
-                bluetoothLeScanner?.stopScan(scanListener?.scanCallback)
-                scanListener?.setScanning(false)
-            }
+        if (scanListener?.getScanning() == false) {
+            Timber.d("$bluetoothLeScanner: Starting scan with listener: $scanListener")
+            bluetoothLeScanner?.startScan(scanListener?.scanCallback)
+            scanListener?.setScanning(true)
+        } else {
+            Timber.d("$bluetoothLeScanner: Stopping scan with listener: $scanListener")
+            bluetoothLeScanner?.stopScan(scanListener?.scanCallback)
+            scanListener?.setScanning(false)
         }
     }
 
-    private fun checkPermission(permissionGrantedHandler: () -> Unit) {
-        val permissions = mutableListOf(
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.FOREGROUND_SERVICE,
-            Manifest.permission.BLUETOOTH_ADMIN
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions.add(Manifest.permission.BLUETOOTH_SCAN)
-            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
-        }
-        val needGrant = permissions.filter { permission ->
-            ActivityCompat.checkSelfPermission(
-                    this,
-                    permission
-                ) != PackageManager.PERMISSION_GRANTED
-
-        }
-        if (needGrant.isEmpty()) permissionGrantedHandler else {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
-    }
 
     fun toggleConnect(device: BluetoothDevice?) {
         Timber.d("toggleConnect() device: ${device?.address?.toString()}; status: ${gattListener?.getConnected()?.name}")
 
-        if (gattListener?.getConnected() != ConnectionStatus.connected) {
-            gattListener?.setConnected(ConnectionStatus.connecting)
-            checkPermission {
-                bluetoothGatt = device?.connectGatt(this, false, object : BluetoothGattCallback() {
-                    override fun onConnectionStateChange(
-                        gatt: BluetoothGatt?,
-                        status: Int,
-                        newState: Int
-                    ) {
-                        Timber.d("toggleConnect() onConnectionStateChange")
-                        checkPermission {
-                            when (val connectionStatus = intToConnectionStatus(newState)) {
-                                ConnectionStatus.connected -> bluetoothGatt?.discoverServices()
-                                else -> gattListener?.setConnected(connectionStatus)
-                            }
-                        }
-                    }
+        if (gattListener?.getConnected() != ConnectionStatus.Connected) {
+            gattListener?.setConnected(ConnectionStatus.Connecting)
+            bluetoothGatt = device?.connectGatt(this, false, object : BluetoothGattCallback() {
 
-                    override fun onServiceChanged(gatt: BluetoothGatt) {
-                        Timber.d("toggleConnect() onServiceChanged")
-                        gatt.services?.let { gattListener?.updateServices(it.toList()) }
+                override fun onConnectionStateChange(
+                    gatt: BluetoothGatt?,
+                    status: Int,
+                    newState: Int
+                ) {
+                    Timber.d("toggleConnect() onConnectionStateChange")
+                    when (val connectionStatus = intToConnectionStatus(newState)) {
+                        ConnectionStatus.Connected -> bluetoothGatt?.discoverServices()
+                        else -> gattListener?.setConnected(connectionStatus)
                     }
+                }
 
-                    override fun onCharacteristicChanged(
-                        gatt: BluetoothGatt?,
-                        characteristic: BluetoothGattCharacteristic?
-                    ) {
-                        Timber.d("toggleConnect() onCharacteristicChanged")
-                        characteristic?.let { gattListener?.updateCharacteristic(it) }
-                    }
+                override fun onServiceChanged(gatt: BluetoothGatt) {
+                    Timber.d("toggleConnect() onServiceChanged")
+                    gatt.services?.let { gattListener?.updateServices(it.toList()) }
+                }
 
-                    override fun onCharacteristicRead(
-                        gatt: BluetoothGatt?,
-                        characteristic: BluetoothGattCharacteristic?,
-                        status: Int
-                    ) {
-                        Timber.d("toggleConnect() onCharacteristicRead")
-                        characteristic?.let { gattListener?.updateCharacteristic(it) }
-                    }
+                override fun onCharacteristicChanged(
+                    gatt: BluetoothGatt?,
+                    characteristic: BluetoothGattCharacteristic?
+                ) {
+                    Timber.d("toggleConnect() onCharacteristicChanged")
+                    characteristic?.let { gattListener?.updateCharacteristic(it) }
+                }
 
-                    override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-                        Timber.d("toggleConnect() onServicesDiscovered")
-                        gatt?.services?.let { gattListener?.updateServices(it) }
-                    }
-                })
-            }
+                override fun onCharacteristicRead(
+                    gatt: BluetoothGatt?,
+                    characteristic: BluetoothGattCharacteristic?,
+                    status: Int
+                ) {
+                    Timber.d("toggleConnect() onCharacteristicRead")
+                    characteristic?.let { gattListener?.updateCharacteristic(it) }
+                }
+
+                override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                    Timber.d("toggleConnect() onServicesDiscovered")
+                    gatt?.services?.let { gattListener?.updateServices(it) }
+                }
+            })
+
 
         } else {
-            gattListener?.setConnected(ConnectionStatus.disconnecting)
+            gattListener?.setConnected(ConnectionStatus.Disconnecting)
             bluetoothGatt?.disconnect()
         }
     }
 
-    val cccdUuid =
-        UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")//Client Characteristic Configuration Descriptor
+    /**
+     * Client Characteristic Configuration Descriptor (often abbreviated CCCD) is essential for the
+     * operation of most of the profiles and use cases. Its function is simple: it acts as a switch,
+     * enabling or disabling server-initiated BLE updates
+     */
+    val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
-    //This descriptor type (often abbreviated CCCD) is without a doubt the most important and commonly used,
-    // and it is essential for the operation of most of the profiles and use cases. Its function is simple:
-    // it acts as a switch, enabling or disabling server-initiated updates
+    //This descriptor type
     fun setCharacteristicNotification(bleChar: BluetoothGattCharacteristic, enabled: Boolean) {
-        checkPermission {
-            bluetoothGatt?.setCharacteristicNotification(bleChar, enabled)
-            bleChar.getDescriptor(cccdUuid)?.let { cccd ->
-                cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                bluetoothGatt?.writeDescriptor(cccd)
-            }
+        bluetoothGatt?.setCharacteristicNotification(bleChar, enabled)
+        bleChar.getDescriptor(cccdUuid)?.let { cccd ->
+            cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            bluetoothGatt?.writeDescriptor(cccd)
         }
     }
 
     private fun intToConnectionStatus(int: Int): ConnectionStatus {
         return when (int) {
-            BluetoothProfile.STATE_CONNECTED -> ConnectionStatus.connected
-            BluetoothProfile.STATE_CONNECTING -> ConnectionStatus.connecting
-            BluetoothProfile.STATE_DISCONNECTING -> ConnectionStatus.disconnecting
-            BluetoothProfile.STATE_DISCONNECTED -> ConnectionStatus.disconnected
-            else -> ConnectionStatus.disconnected
+            BluetoothProfile.STATE_CONNECTED -> ConnectionStatus.Connected
+            BluetoothProfile.STATE_CONNECTING -> ConnectionStatus.Connecting
+            BluetoothProfile.STATE_DISCONNECTING -> ConnectionStatus.Disconnecting
+            BluetoothProfile.STATE_DISCONNECTED -> ConnectionStatus.Disconnected
+            else -> ConnectionStatus.Disconnected
         }
     }
 

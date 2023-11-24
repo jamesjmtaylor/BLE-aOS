@@ -21,12 +21,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.jamesjmtaylor.blecompose.BleViewModel
-import com.jamesjmtaylor.blecompose.ConnectViewState
-import com.jamesjmtaylor.blecompose.ConnectionStatus
+import com.jamesjmtaylor.blecompose.services.BleViewModel
+import com.jamesjmtaylor.blecompose.services.ConnectViewState
+import com.jamesjmtaylor.blecompose.services.ConnectionStatus
 import com.jamesjmtaylor.blecompose.NavActivity
 import com.jamesjmtaylor.blecompose.models.GattCharacteristic
-import com.jamesjmtaylor.blecompose.models.characteristics.*
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 import com.jamesjmtaylor.blecompose.views.componentviews.ListItem
 import java.util.*
@@ -70,13 +69,14 @@ fun ServiceCharacteristicsView(vm: BleViewModel, navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalUnsignedTypes::class)
 @Preview(showBackground = true, name = "Light Mode")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true, name = "Dark Mode")
 @Composable
 fun PreviewServiceCharacteristicsView() {
     val navController = rememberNavController()
     val vs = MutableLiveData<ConnectViewState>()
-    vs.value = ConnectViewState(ConnectionStatus.connected, SampleData.discoveredServices, SampleData.characteristics)
+    vs.value = ConnectViewState(ConnectionStatus.Connected, SampleData.discoveredServices, SampleData.characteristics)
     BLEComposeTheme {
         ServiceCharacteristicsView(BleViewModel(connectViewMutableLiveData = vs),navController)
     }

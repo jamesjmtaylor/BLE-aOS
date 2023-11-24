@@ -12,10 +12,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.jamesjmtaylor.blecompose.views.componentviews.ScanView
-import com.jamesjmtaylor.blecompose.views.componentviews.ScanViewRoute
+import com.jamesjmtaylor.blecompose.views.ScanView
+import com.jamesjmtaylor.blecompose.views.ScanViewRoute
 import com.jamesjmtaylor.blecompose.services.ScanListener
 import com.jamesjmtaylor.blecompose.services.BleService
+import com.jamesjmtaylor.blecompose.services.BleViewModel
 import com.jamesjmtaylor.blecompose.services.GattListener
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
 import com.jamesjmtaylor.blecompose.views.*
@@ -47,13 +48,14 @@ class NavActivity : ComponentActivity() {
     @OptIn(ExperimentalUnsignedTypes::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        bleViewModel = ViewModelProvider(this).get(BleViewModel::class.java)
+        bleViewModel = ViewModelProvider(this)[BleViewModel::class.java]
         bleViewModel?.let { vm -> setContent { BLEComposeTheme {
             val navController = rememberNavController()
             NavHost(navController, ScanViewRoute){
                 composable(ScanViewRoute) { ScanView(vm,navController) }
                 composable(ConnectViewRoute) { ConnectView(vm,navController)}
                 composable(ServiceCharacteristicsViewRoute) { ServiceCharacteristicsView(vm,navController)}
+                composable(PermissionsDeniedViewRoute) { PermissionsDeniedView(navController)}
             }
         }}}
     }

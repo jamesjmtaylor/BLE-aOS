@@ -21,6 +21,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.jamesjmtaylor.blecompose.*
 import com.jamesjmtaylor.blecompose.models.GattService
+import com.jamesjmtaylor.blecompose.services.BleViewModel
+import com.jamesjmtaylor.blecompose.services.ConnectViewState
+import com.jamesjmtaylor.blecompose.services.ConnectionStatus
 import com.jamesjmtaylor.blecompose.views.componentviews.ListItem
 import com.jamesjmtaylor.blecompose.views.componentviews.Spinner
 import com.jamesjmtaylor.blecompose.ui.theme.BLEComposeTheme
@@ -33,8 +36,8 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
     val context = LocalContext.current
     val viewState by vm.connectViewState.observeAsState()
     val name = vm.selectedDevice?.device?.name ?: vm.selectedDevice?.device?.address ?: "No name assigned"
-    if (viewState?.connectionStatus == ConnectionStatus.connecting
-        || viewState?.connectionStatus == ConnectionStatus.disconnecting ) Spinner()
+    if (viewState?.connectionStatus == ConnectionStatus.Connecting
+        || viewState?.connectionStatus == ConnectionStatus.Disconnecting ) Spinner()
     Column(Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth().padding(8.dp)){
             Button(onClick = {
@@ -43,10 +46,10 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
                 else Toast.makeText(context,"Device is not connectable", Toast.LENGTH_LONG).show()
             }) {
                 Text(when (viewState?.connectionStatus) {
-                    ConnectionStatus.disconnected-> "Connect"
-                    ConnectionStatus.disconnecting -> "Disconnecting"
-                    ConnectionStatus.connected -> "Disconnect"
-                    ConnectionStatus.connecting -> "Connecting"
+                    ConnectionStatus.Disconnected-> "Connect"
+                    ConnectionStatus.Disconnecting -> "Disconnecting"
+                    ConnectionStatus.Connected -> "Disconnect"
+                    ConnectionStatus.Connecting -> "Connecting"
                     else -> "Connect"
                 })
             }
@@ -79,7 +82,7 @@ fun ConnectView(vm: BleViewModel, navController: NavController) {
 fun PreviewConnectView() {
     val navController = rememberNavController()
     val vs = MutableLiveData<ConnectViewState>()
-    vs.value = ConnectViewState(ConnectionStatus.connected, SampleData.discoveredServices)
+    vs.value = ConnectViewState(ConnectionStatus.Connected, SampleData.discoveredServices)
     BLEComposeTheme {
         ConnectView(BleViewModel(connectViewMutableLiveData = vs),navController)
     }
