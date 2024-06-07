@@ -81,9 +81,14 @@ fun ScanView(vm: BleViewModel, navController: NavController) {
     if (checkPermissions && activity != null) {
         checkPermissions = false
         PermissionsRequest(
-            activity,
-            { activity.bleService?.toggleScan() },
-            { navController.navigate(PermissionsDeniedViewRoute) { launchSingleTop = true } }
+            activity = activity,
+            onPermissionsGranted = {
+                activity.bleService?.launchForegroundNotification()
+                activity.bleService?.toggleScan()
+            },
+            onPermissionsDenied = {
+                navController.navigate(PermissionsDeniedViewRoute) { launchSingleTop = true }
+            }
         )
     }
 }

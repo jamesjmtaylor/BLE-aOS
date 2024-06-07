@@ -82,10 +82,9 @@ class BleService : Service() {
             val manager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             bluetoothLeScanner = manager.adapter.bluetoothLeScanner
         }
-        launchForegroundNotification()
     }
 
-    private fun launchForegroundNotification() {
+    fun launchForegroundNotification() {
         val notificationIntent = Intent(this, NavActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, FLAG_IMMUTABLE)
 
